@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.env
+venv/
+.venv/
+
+# Backend data — never commit databases or uploaded receipt images
+backend/data/
+backend/uploads/
+*.db
+*.sqlite
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.claude
+
+# OS
+.DS_Store
+Thumbs.db
