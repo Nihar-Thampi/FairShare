@@ -10,6 +10,7 @@ build/
 .env
 venv/
 .venv/
+.env.example
 
 # Backend data — never commit databases or uploaded receipt images
 backend/data/
