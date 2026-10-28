@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Stack, Title, Tabs, Text, Loader, Center, Breadcrumbs, Anchor, Group
+  Stack, Title, Tabs, Text, Loader, Center, Breadcrumbs, Anchor, Group, Paper, Badge,
+  ActionIcon, Tooltip,
 } from '@mantine/core'
+import { IconCalculator, IconListDetails, IconPencil, IconUpload, IconUsers } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
 import { getBill, clearItems } from '../api/bills'
@@ -18,8 +20,25 @@ import PersonManager from '../components/persons/PersonManager'
 import AssignmentPanel from '../components/assignment/AssignmentPanel'
 import ResultsTable from '../components/results/ResultsTable'
 import ReceiptViewer from '../components/results/ReceiptViewer'
+import RenameBillModal from '../components/bill/RenameBillModal'
 import { replaceBillImage } from '../api/bills'
 import type { BillItem, Assignment } from '../types'
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'gray',
+  ocr_pending: 'yellow',
+  ocr_done: 'blue',
+  assigned: 'violet',
+  calculated: 'green',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  ocr_pending: 'Processing...',
+  ocr_done: 'Items Extracted',
+  assigned: 'Assigned',
+  calculated: 'Calculated',
+}
 
 export default function BillPage() {
   const { id } = useParams<{ id: string }>()
@@ -35,6 +54,7 @@ export default function BillPage() {
   const [activeTab, setActiveTab] = useState<string>('upload')
   const [reEditImage, setReEditImage] = useState<{ filename: string; file: File } | null>(null)
   const [receiptRefreshKey, setReceiptRefreshKey] = useState(0)
+  const [renameOpen, setRenameOpen] = useState(false)
 
   // Load bill, persons, assignments and check LLM health
   useEffect(() => {
@@ -121,80 +141,109 @@ export default function BillPage() {
         onCancel={() => setReEditImage(null)}
       />
     )}
-    <Stack>
-      <Breadcrumbs>
-        <Anchor component={Link} to="/" size="sm">Bills</Anchor>
-        <Text size="sm">{bill.name}</Text>
-      </Breadcrumbs>
+    <RenameBillModal
+      bill={renameOpen ? bill : null}
+      onClose={() => setRenameOpen(false)}
+      onRenamed={updated => setBill({ ...bill, name: updated.name })}
+    />
+    <Stack gap="lg">
+      <Stack gap={6}>
+        <Breadcrumbs>
+          <Anchor component={Link} to="/" size="sm">Bills</Anchor>
+          <Text size="sm" c="dimmed">{bill.name}</Text>
+        </Breadcrumbs>
 
-      <Group justify="space-between">
-        <Title order={2}>{bill.name}</Title>
-      </Group>
+        <Group justify="space-between" align="center">
+          <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
+            <Title order={2} lineClamp={1}>{bill.name}</Title>
+            <Tooltip label="Rename bill" withArrow>
+              <ActionIcon variant="subtle" color="gray" aria-label="Rename bill" onClick={() => setRenameOpen(true)}>
+                <IconPencil size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
+          <Badge size="lg" variant="light" color={STATUS_COLORS[bill.status] ?? 'gray'}>
+            {STATUS_LABELS[bill.status] ?? bill.status}
+          </Badge>
+        </Group>
+      </Stack>
 
-      <Tabs value={activeTab} onChange={v => setActiveTab(v ?? 'upload')}>
-        <Tabs.List>
-          <Tabs.Tab value="upload">1. Upload Receipt</Tabs.Tab>
-          <Tabs.Tab value="items">2. Review Items</Tabs.Tab>
-          <Tabs.Tab value="assign">3. Assign</Tabs.Tab>
-          <Tabs.Tab value="results">4. Results</Tabs.Tab>
-        </Tabs.List>
+      <Tabs value={activeTab} onChange={v => setActiveTab(v ?? 'upload')} variant="pills" radius="md">
+        <Paper withBorder p={6} shadow="xs" mb="md">
+          <Tabs.List>
+            <Tabs.Tab value="upload" leftSection={<IconUpload size={16} />}>1. Upload Receipt</Tabs.Tab>
+            <Tabs.Tab value="items" leftSection={<IconListDetails size={16} />}>2. Review Items</Tabs.Tab>
+            <Tabs.Tab value="assign" leftSection={<IconUsers size={16} />}>3. Assign</Tabs.Tab>
+            <Tabs.Tab value="results" leftSection={<IconCalculator size={16} />}>4. Results</Tabs.Tab>
+          </Tabs.List>
+        </Paper>
 
-        <Tabs.Panel value="upload" pt="md">
-          <Stack>
-            <ReceiptUploader
-              billId={billId}
-              ocrOk={ocrOk}
-              onComplete={handleOcrComplete}
-              onClear={handleClearItems}
-              extractedCount={items.length}
-            />
-            <ReceiptViewer
-              billId={billId}
-              imagePath={bill.image_path ?? null}
-              refreshKey={receiptRefreshKey}
-              onImageDeleted={setBill}
-              onEdit={(filename, file) => setReEditImage({ filename, file })}
-            />
-          </Stack>
+        <Tabs.Panel value="upload">
+          <Paper withBorder shadow="xs" p="lg">
+            <Stack>
+              <ReceiptUploader
+                billId={billId}
+                ocrOk={ocrOk}
+                onComplete={handleOcrComplete}
+                onClear={handleClearItems}
+                extractedCount={items.length}
+              />
+              <ReceiptViewer
+                billId={billId}
+                imagePath={bill.image_path ?? null}
+                refreshKey={receiptRefreshKey}
+                onImageDeleted={setBill}
+                onEdit={(filename, file) => setReEditImage({ filename, file })}
+              />
+            </Stack>
+          </Paper>
         </Tabs.Panel>
 
-        <Tabs.Panel value="items" pt="md">
-          <ItemList
-            billId={billId}
-            items={items}
-            onChange={setItems}
-          />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="assign" pt="md">
-          <Stack>
-            <PersonManager
-              billId={billId}
-              persons={persons}
-              onAdd={(name) => addPersonToBill(billId, name).then(() => {})}
-              onRemove={removePersonFromBill}
-            />
-            <AssignmentPanel
+        <Tabs.Panel value="items">
+          <Paper withBorder shadow="xs" p="lg">
+            <ItemList
               billId={billId}
               items={items}
-              persons={persons}
-              assignments={assignments}
-              onAssignmentsChange={handleAssignmentsChange}
-              onAllAssignmentsChange={setAssignments}
+              onChange={setItems}
             />
+          </Paper>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="assign">
+          <Stack>
+            <Paper withBorder shadow="xs" p="lg">
+              <PersonManager
+                billId={billId}
+                persons={persons}
+                onAdd={(name) => addPersonToBill(billId, name).then(() => {})}
+                onRemove={removePersonFromBill}
+              />
+            </Paper>
+            <Paper withBorder shadow="xs" p="lg">
+              <AssignmentPanel
+                billId={billId}
+                items={items}
+                persons={persons}
+                assignments={assignments}
+                onAssignmentsChange={handleAssignmentsChange}
+                onAllAssignmentsChange={setAssignments}
+              />
+            </Paper>
           </Stack>
         </Tabs.Panel>
 
-        <Tabs.Panel value="results" pt="md">
+        <Tabs.Panel value="results">
           <Stack>
+            <Paper withBorder shadow="xs" p="lg">
+              <ResultsTable
+                billId={billId}
+                results={results}
+                loading={calcLoading}
+                error={calcError}
+                onCalculate={handleCalculate}
+              />
+            </Paper>
             <ReceiptViewer billId={billId} imagePath={bill.image_path ?? null} />
-            <ResultsTable
-              billId={billId}
-              results={results}
-              loading={calcLoading}
-              error={calcError}
-              onCalculate={handleCalculate}
-            />
           </Stack>
         </Tabs.Panel>
       </Tabs>

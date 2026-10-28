@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Table, TextInput, NumberInput, Checkbox, ActionIcon, Badge, Group, Text } from '@mantine/core'
+import { Table, TextInput, NumberInput, Checkbox, ActionIcon, Badge, Group, Text, Tooltip } from '@mantine/core'
+import { IconTrash } from '@tabler/icons-react'
 import type { BillItem } from '../../types'
 
 interface Props {
@@ -31,7 +32,7 @@ export default function ItemRow({ item, number, onUpdate, onDelete }: Props) {
   }
 
   return (
-    <Table.Tr style={{ background: item.is_tax_line ? 'var(--mantine-color-yellow-0)' : undefined }}>
+    <Table.Tr className={item.is_tax_line ? 'fs-tax-row' : undefined}>
       <Table.Td>
         <Text size="xs" c="dimmed" ta="center">{number}</Text>
       </Table.Td>
@@ -73,20 +74,25 @@ export default function ItemRow({ item, number, onUpdate, onDelete }: Props) {
           hideControls
         />
       </Table.Td>
-      <Table.Td>
-        ${(item.total_price ?? qty * price).toFixed(2)}
+      <Table.Td ta="right">
+        <Text size="sm" fw={500}>${(item.total_price ?? qty * price).toFixed(2)}</Text>
       </Table.Td>
       <Table.Td>
         <Checkbox
+          mx="auto"
+          w="fit-content"
+          aria-label="Tax line"
           checked={item.is_tax_line === 1}
           onChange={e => handleTaxToggle(e.currentTarget.checked)}
           size="sm"
         />
       </Table.Td>
       <Table.Td>
-        <ActionIcon color="red" variant="subtle" size="sm" onClick={onDelete} aria-label="Delete item">
-          ×
-        </ActionIcon>
+        <Tooltip label="Delete item" withArrow>
+          <ActionIcon color="gray" variant="subtle" onClick={onDelete} aria-label="Delete item">
+            <IconTrash size={16} />
+          </ActionIcon>
+        </Tooltip>
       </Table.Td>
     </Table.Tr>
   )

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Stack, Text, Table, Badge, ScrollArea, Checkbox, Tooltip } from '@mantine/core'
+import { Stack, Text, Table, Badge, ScrollArea, Checkbox, Tooltip, ThemeIcon } from '@mantine/core'
+import { IconListDetails, IconUsers } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import type { BillItem, Person, Assignment } from '../../types'
 import { bulkAssignPerson, bulkRemovePerson } from '../../api/assignments'
@@ -19,17 +20,27 @@ export default function AssignmentPanel({ billId, items, persons, assignments, o
 
   if (persons.length < 2) {
     return (
-      <Text c="dimmed" ta="center" py="xl">
-        Add at least 2 people above before assigning items.
-      </Text>
+      <Stack align="center" gap="sm" py="xl">
+        <ThemeIcon size={56} radius="xl" variant="light" color="gray">
+          <IconUsers size={28} />
+        </ThemeIcon>
+        <Text c="dimmed" ta="center">
+          Add at least 2 people above before assigning items.
+        </Text>
+      </Stack>
     )
   }
 
   if (items.length === 0) {
     return (
-      <Text c="dimmed" ta="center" py="xl">
-        No items to assign. Add items in the previous step.
-      </Text>
+      <Stack align="center" gap="sm" py="xl">
+        <ThemeIcon size={56} radius="xl" variant="light" color="gray">
+          <IconListDetails size={28} />
+        </ThemeIcon>
+        <Text c="dimmed" ta="center">
+          No items to assign. Add items in the previous step.
+        </Text>
+      </Stack>
     )
   }
 
@@ -65,12 +76,15 @@ export default function AssignmentPanel({ billId, items, persons, assignments, o
 
   return (
     <Stack>
-      <Text size="sm" c="dimmed">
-        Check who shares each item. Tax lines are always split equally.
-      </Text>
+      <div>
+        <Text fw={600}>Assign items</Text>
+        <Text size="sm" c="dimmed">
+          Check who shares each item. Tax lines are always split equally.
+        </Text>
+      </div>
 
       <ScrollArea>
-        <Table withTableBorder withColumnBorders>
+        <Table className="fs-table" withTableBorder withColumnBorders highlightOnHover verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
               <Table.Th miw={160}>Item</Table.Th>
@@ -83,7 +97,7 @@ export default function AssignmentPanel({ billId, items, persons, assignments, o
                 return (
                   <Table.Th key={p.id} ta="center" w={80}>
                     <Stack gap={4} align="center">
-                      <Badge size="sm" style={{ background: p.color, color: '#fff' }}>
+                      <Badge size="sm" tt="none" style={{ background: p.color, color: '#fff' }}>
                         {p.name}
                       </Badge>
                       <Tooltip label={allChecked ? `Remove ${p.name} from all` : `Add ${p.name} to all`} withArrow>

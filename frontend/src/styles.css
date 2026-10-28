@@ -1,0 +1,62 @@
+.fs-hover-card {
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+
+.fs-hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--mantine-shadow-md);
+  border-color: var(--mantine-color-teal-3);
+}
+
+.fs-dropzone {
+  border: 2px dashed var(--mantine-color-gray-4);
+  border-radius: var(--mantine-radius-lg);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--mantine-color-white);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.fs-dropzone:hover,
+.fs-dropzone[data-active='true'] {
+  border-color: var(--mantine-color-teal-5);
+  background: var(--mantine-color-teal-0);
+}
+
+.fs-dropzone[data-uploading='true'] {
+  cursor: wait;
+}
+
+.fs-table thead th {
+  background: var(--mantine-color-gray-0);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mantine-color-gray-7);
+}
+
+.fs-click-row {
+  cursor: pointer;
+}
+
+.fs-click-row:focus-visible {
+  outline: 2px solid var(--mantine-color-teal-5);
+  outline-offset: -2px;
+}
+
+.fs-tax-row {
+  background: var(--mantine-color-yellow-0) !important;
+}
+
+.fs-receipt-thumb {
+  position: relative;
+  display: inline-block;
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--mantine-color-gray-3);
+  box-shadow: var(--mantine-shadow-xs);
+  background: var(--mantine-color-white);
+}

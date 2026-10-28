@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Group, TextInput, Button, Badge, ActionIcon, Stack, Text } from '@mantine/core'
+import { IconUserPlus, IconX } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import type { Person } from '../../types'
 
@@ -32,7 +33,10 @@ export default function PersonManager({ persons, onAdd, onRemove }: Props) {
 
   return (
     <Stack gap="sm">
-      <Text fw={500}>People on this bill</Text>
+      <div>
+        <Text fw={600}>People on this bill</Text>
+        <Text size="sm" c="dimmed">Everyone who is sharing this bill.</Text>
+      </div>
 
       {persons.length === 0 && (
         <Text size="sm" c="dimmed">No people added yet. Add at least 2.</Text>
@@ -43,7 +47,10 @@ export default function PersonManager({ persons, onAdd, onRemove }: Props) {
           <Badge
             key={p.id}
             style={{ background: p.color, color: '#fff' }}
-            size="lg"
+            size="xl"
+            radius="xl"
+            tt="none"
+            pr={4}
             rightSection={
               <ActionIcon
                 size="xs"
@@ -52,7 +59,7 @@ export default function PersonManager({ persons, onAdd, onRemove }: Props) {
                 onClick={() => onRemove(p.id)}
                 aria-label={`Remove ${p.name}`}
               >
-                ×
+                <IconX size={12} />
               </ActionIcon>
             }
           >
@@ -61,7 +68,7 @@ export default function PersonManager({ persons, onAdd, onRemove }: Props) {
         ))}
       </Group>
 
-      <Group gap="xs">
+      <Group gap="xs" maw={480}>
         <TextInput
           placeholder="Person's name"
           value={name}
@@ -70,7 +77,7 @@ export default function PersonManager({ persons, onAdd, onRemove }: Props) {
           size="sm"
           style={{ flex: 1 }}
         />
-        <Button size="sm" onClick={handleAdd} loading={adding} disabled={!name.trim()}>
+        <Button size="sm" leftSection={<IconUserPlus size={16} />} onClick={handleAdd} loading={adding} disabled={!name.trim()}>
           Add
         </Button>
       </Group>

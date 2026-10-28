@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  AppShell, Container, Title, Anchor, Group, Avatar, Menu, Text, UnstyledButton,
+  AppShell, Container, Anchor, Group, Avatar, Menu, Text, UnstyledButton,
 } from '@mantine/core'
+import { IconChevronDown, IconLogout } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
+import Logo from './components/layout/Logo'
 import HomePage from './pages/HomePage'
 import BillPage from './pages/BillPage'
 import LoginPage from './pages/LoginPage'
@@ -27,41 +29,47 @@ function ProtectedLayout() {
   }
 
   return (
-    <AppShell header={{ height: 56 }} padding="md">
-      <AppShell.Header style={{ display: 'flex', alignItems: 'center', padding: '0 1.5rem' }}>
-        <Group justify="space-between" w="100%">
-          <Anchor component={Link} to="/" underline="never">
-            <Title order={3} style={{ color: 'var(--mantine-color-blue-6)' }}>
-              FairShare
-            </Title>
-          </Anchor>
+    <AppShell header={{ height: 64 }} padding={0}>
+      <AppShell.Header withBorder style={{ boxShadow: 'var(--mantine-shadow-xs)' }}>
+        <Container size="lg" h="100%">
+          <Group justify="space-between" h="100%">
+            <Anchor component={Link} to="/" underline="never">
+              <Logo />
+            </Anchor>
 
-          {user && (
-            <Menu position="bottom-end" withinPortal>
-              <Menu.Target>
-                <UnstyledButton>
-                  <Group gap="xs">
-                    <Avatar color="blue" radius="xl" size="sm">
-                      {user.name[0].toUpperCase()}
-                    </Avatar>
-                    <Text size="sm" fw={500} visibleFrom="sm">{user.name}</Text>
-                  </Group>
-                </UnstyledButton>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Label>{user.email}</Menu.Label>
-                <Menu.Divider />
-                <Menu.Item color="red" onClick={handleLogout}>
-                  Sign out
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          )}
-        </Group>
+            {user && (
+              <Menu position="bottom-end" withinPortal shadow="md" width={220}>
+                <Menu.Target>
+                  <UnstyledButton
+                    px="xs"
+                    py={6}
+                    style={{ borderRadius: 'var(--mantine-radius-md)' }}
+                    aria-label="Account menu"
+                  >
+                    <Group gap="xs">
+                      <Avatar color="teal" radius="xl" size={32}>
+                        {user.name[0].toUpperCase()}
+                      </Avatar>
+                      <Text size="sm" fw={500} visibleFrom="sm">{user.name}</Text>
+                      <IconChevronDown size={14} color="var(--mantine-color-gray-6)" />
+                    </Group>
+                  </UnstyledButton>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Label>{user.email}</Menu.Label>
+                  <Menu.Divider />
+                  <Menu.Item color="red" leftSection={<IconLogout size={16} />} onClick={handleLogout}>
+                    Sign out
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            )}
+          </Group>
+        </Container>
       </AppShell.Header>
 
-      <AppShell.Main>
-        <Container size="lg" py="md">
+      <AppShell.Main bg="gray.0" mih="100vh">
+        <Container size="lg" py="xl">
           <Outlet />
         </Container>
       </AppShell.Main>

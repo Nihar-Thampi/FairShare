@@ -3,6 +3,7 @@ import {
   Modal, Group, Button, Stack, Text, Loader, Center, ActionIcon, Tooltip,
   Divider,
 } from '@mantine/core'
+import { IconCheck, IconRotate, IconRotateClockwise } from '@tabler/icons-react'
 import { warpPerspective, rotateImage } from '../../utils/perspectiveTransform'
 import type { Pt } from '../../utils/perspectiveTransform'
 import { computeAutoEnhance, DEFAULT_ENHANCE } from '../../utils/imageEnhance'
@@ -180,10 +181,10 @@ export default function ImageEditor({ file, pageLabel, onConfirm, onCancel }: Pr
         {/* Rotate toolbar */}
         <Group gap="xs">
           <Tooltip label="Rotate counter-clockwise">
-            <ActionIcon variant="default" size="lg" onClick={() => rotate(270)} disabled={processing || !imgEl}>↺</ActionIcon>
+            <ActionIcon variant="default" size="lg" onClick={() => rotate(270)} disabled={processing || !imgEl} aria-label="Rotate counter-clockwise"><IconRotate size={18} /></ActionIcon>
           </Tooltip>
           <Tooltip label="Rotate clockwise">
-            <ActionIcon variant="default" size="lg" onClick={() => rotate(90)} disabled={processing || !imgEl}>↻</ActionIcon>
+            <ActionIcon variant="default" size="lg" onClick={() => rotate(90)} disabled={processing || !imgEl} aria-label="Rotate clockwise"><IconRotateClockwise size={18} /></ActionIcon>
           </Tooltip>
           <Text size="xs" c="dimmed" ml={4}>
             Drag the 4 corner handles to frame the bill
@@ -223,17 +224,17 @@ export default function ImageEditor({ file, pageLabel, onConfirm, onCancel }: Pr
                   </mask>
                 </defs>
                 <rect width={displaySize!.w} height={displaySize!.h} fill="rgba(0,0,0,0.4)" mask="url(#quad-mask)" />
-                <polygon points={polygonPoints} fill="none" stroke="#3b82f6" strokeWidth={2} strokeDasharray="6 3" />
+                <polygon points={polygonPoints} fill="none" stroke="#12b886" strokeWidth={2} strokeDasharray="6 3" />
                 {[0, 1, 2, 3].map(i => {
                   const [x1, y1] = handles[i], [x2, y2] = handles[(i + 1) % 4]
-                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#3b82f6" strokeWidth={1.5} />
+                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#12b886" strokeWidth={1.5} />
                 })}
                 {handles.map(([x, y], i) => (
                   <g key={i}>
                     <circle cx={x} cy={y} r={HANDLE_R + 8} fill="transparent" style={{ cursor: 'grab' }}
                       onMouseDown={onHandleMouseDown(i)} onTouchStart={onHandleTouchStart(i)} />
                     <circle cx={x} cy={y} r={HANDLE_R}
-                      fill={dragging === i ? '#2563eb' : '#3b82f6'} stroke="white" strokeWidth={2}
+                      fill={dragging === i ? '#087f5b' : '#12b886'} stroke="white" strokeWidth={2}
                       style={{ pointerEvents: 'none' }} />
                     <text x={x} y={y + HANDLE_R + 14} textAnchor="middle" fontSize={10} fill="white"
                       style={{ pointerEvents: 'none', filter: 'drop-shadow(0 1px 1px black)' }}>
@@ -248,10 +249,10 @@ export default function ImageEditor({ file, pageLabel, onConfirm, onCancel }: Pr
 
         {/* Actions */}
         <Group justify="flex-end" mt={4}>
-          <Button variant="subtle" color="gray" onClick={onCancel} disabled={processing}>
+          <Button variant="default" onClick={onCancel} disabled={processing}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} loading={processing} disabled={!ready}>
+          <Button leftSection={<IconCheck size={16} />} onClick={handleConfirm} loading={processing} disabled={!ready}>
             Confirm
           </Button>
         </Group>

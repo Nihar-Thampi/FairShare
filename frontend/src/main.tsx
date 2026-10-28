@@ -4,12 +4,14 @@ import { MantineProvider } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
+import { theme } from './theme'
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
+import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MantineProvider defaultColorScheme="light">
+    <MantineProvider theme={theme} defaultColorScheme="light">
       <Notifications position="top-right" />
       <BrowserRouter>
         <App />

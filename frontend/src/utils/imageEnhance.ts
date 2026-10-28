@@ -9,7 +9,7 @@ export const DEFAULT_ENHANCE: EnhanceSettings = { brightness: 1, contrast: 1, sh
 // Unsharp-mask kernel: amplifies edges without shifting overall brightness (weights sum to 1)
 const SHARPEN_KERNEL = [0, -1, 0, -1, 5, -1, 0, -1, 0]
 
-function convolve3x3(src: Uint8ClampedArray, w: number, h: number): Uint8ClampedArray {
+function convolve3x3(src: Uint8ClampedArray, w: number, h: number): Uint8ClampedArray<ArrayBuffer> {
   const dst = new Uint8ClampedArray(src)
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {

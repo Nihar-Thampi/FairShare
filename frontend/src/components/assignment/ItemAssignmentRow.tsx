@@ -117,7 +117,7 @@ export default function ItemAssignmentRow({ item, persons, assignments, onSaved 
   }
 
   return (
-    <Table.Tr style={{ background: isTax ? 'var(--mantine-color-yellow-0)' : undefined }}>
+    <Table.Tr className={isTax ? 'fs-tax-row' : undefined}>
       <Table.Td>
         <Stack gap={2}>
           <Group gap="xs">
@@ -136,6 +136,9 @@ export default function ItemAssignmentRow({ item, persons, assignments, onSaved 
         <>
           <Table.Td ta="center">
             <Checkbox
+              mx="auto"
+              w="fit-content"
+              aria-label={`Assign ${item.name} to everyone`}
               checked={persons.every(p => checkedIds.includes(p.id))}
               indeterminate={
                 !persons.every(p => checkedIds.includes(p.id)) &&
@@ -147,6 +150,9 @@ export default function ItemAssignmentRow({ item, persons, assignments, onSaved 
           {persons.map(p => (
             <Table.Td key={p.id} ta="center">
               <Checkbox
+                mx="auto"
+                w="fit-content"
+                aria-label={`Assign ${item.name} to ${p.name}`}
                 checked={checkedIds.includes(p.id)}
                 onChange={e => handleCheck(p.id, e.currentTarget.checked)}
                 color={p.color}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ActionIcon, Group, Loader, Modal, Text, UnstyledButton } from '@mantine/core'
+import { ActionIcon, Group, Loader, Modal, Text, Tooltip, UnstyledButton } from '@mantine/core'
+import { IconPencil, IconX } from '@tabler/icons-react'
 import type { Bill } from '../../types'
 import { getBillImageBlobUrl, deleteBillImage } from '../../api/bills'
 
@@ -79,10 +80,10 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
 
   return (
     <>
-      <Text size="sm" fw={600} c="dimmed">Uploaded receipt</Text>
+      <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: '0.04em' }}>Uploaded receipt</Text>
       <Group gap="sm" wrap="wrap">
         {entries.map(({ filename, url }) => (
-          <div key={filename} style={{ position: 'relative', display: 'inline-block' }}>
+          <div key={filename} className="fs-receipt-thumb">
             <UnstyledButton onClick={() => editable ? handleEditClick(filename, url) : setEnlarged(url)}>
               <img
                 src={url}
@@ -90,8 +91,6 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
                 style={{
                   height: 160,
                   width: 'auto',
-                  borderRadius: 8,
-                  border: '1px solid var(--mantine-color-gray-3)',
                   objectFit: 'contain',
                   cursor: editable ? 'pointer' : 'zoom-in',
                   display: 'block',
@@ -100,32 +99,36 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
             </UnstyledButton>
 
             {editable && (
-              <ActionIcon
-                size="sm"
-                color="blue"
-                variant="filled"
-                radius="xl"
-                onClick={() => handleEditClick(filename, url)}
-                style={{ position: 'absolute', top: 4, left: 4 }}
-                aria-label="Re-adjust image"
-              >
-                ✎
-              </ActionIcon>
+              <Tooltip label="Re-adjust image" withArrow>
+                <ActionIcon
+                  size="md"
+                  color="teal"
+                  variant="filled"
+                  radius="xl"
+                  onClick={() => handleEditClick(filename, url)}
+                  style={{ position: 'absolute', top: 6, left: 6, boxShadow: 'var(--mantine-shadow-sm)' }}
+                  aria-label="Re-adjust image"
+                >
+                  <IconPencil size={14} />
+                </ActionIcon>
+              </Tooltip>
             )}
 
             {onImageDeleted && (
-              <ActionIcon
-                size="sm"
-                color="red"
-                variant="filled"
-                radius="xl"
-                loading={deleting === filename}
-                onClick={() => handleDelete(filename)}
-                style={{ position: 'absolute', top: 4, right: 4 }}
-                aria-label="Delete image"
-              >
-                ✕
-              </ActionIcon>
+              <Tooltip label="Delete image" withArrow>
+                <ActionIcon
+                  size="md"
+                  color="red"
+                  variant="filled"
+                  radius="xl"
+                  loading={deleting === filename}
+                  onClick={() => handleDelete(filename)}
+                  style={{ position: 'absolute', top: 6, right: 6, boxShadow: 'var(--mantine-shadow-sm)' }}
+                  aria-label="Delete image"
+                >
+                  <IconX size={14} />
+                </ActionIcon>
+              </Tooltip>
             )}
           </div>
         ))}

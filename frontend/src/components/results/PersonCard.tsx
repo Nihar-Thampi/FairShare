@@ -1,4 +1,5 @@
-import { Card, Text, Group, Badge, Collapse, ActionIcon, Stack, Divider } from '@mantine/core'
+import { Card, Text, Group, Avatar, Collapse, UnstyledButton, Stack, Divider } from '@mantine/core'
+import { IconChevronDown } from '@tabler/icons-react'
 import { useState } from 'react'
 import type { PersonResult } from '../../types'
 
@@ -11,14 +12,15 @@ export default function PersonCard({ result }: Props) {
   const { person, subtotal, tax_share, total, breakdown } = result
 
   return (
-    <Card withBorder shadow="sm" radius="md">
-      <Group justify="space-between" mb="xs">
-        <Group gap="sm">
-          <Badge size="lg" style={{ background: person.color, color: '#fff' }}>
-            {person.name}
-          </Badge>
+    <Card withBorder shadow="xs" radius="md" p="lg" style={{ borderTop: `4px solid ${person.color}` }}>
+      <Group justify="space-between" mb="md" wrap="nowrap">
+        <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+          <Avatar radius="xl" size={36} styles={{ placeholder: { color: '#fff', background: person.color } }}>
+            {person.name[0]?.toUpperCase()}
+          </Avatar>
+          <Text fw={600} lineClamp={1}>{person.name}</Text>
         </Group>
-        <Text fw={700} size="xl">${total.toFixed(2)}</Text>
+        <Text fw={700} fz={24}>${total.toFixed(2)}</Text>
       </Group>
 
       <Group gap="xl">
@@ -35,17 +37,21 @@ export default function PersonCard({ result }: Props) {
       {breakdown.length > 0 && (
         <>
           <Divider my="xs" />
-          <Group justify="space-between">
-            <Text size="xs" c="dimmed">Item breakdown</Text>
-            <ActionIcon
-              variant="subtle"
-              size="xs"
-              onClick={() => setExpanded(!expanded)}
-              aria-label={expanded ? 'Collapse' : 'Expand'}
-            >
-              {expanded ? '▲' : '▼'}
-            </ActionIcon>
-          </Group>
+          <UnstyledButton
+            onClick={() => setExpanded(!expanded)}
+            aria-label={expanded ? 'Collapse' : 'Expand'}
+            aria-expanded={expanded}
+            w="100%"
+          >
+            <Group justify="space-between">
+              <Text size="xs" c="dimmed" fw={500}>Item breakdown ({breakdown.length})</Text>
+              <IconChevronDown
+                size={16}
+                color="var(--mantine-color-gray-6)"
+                style={{ transform: expanded ? 'rotate(180deg)' : undefined, transition: 'transform 150ms ease' }}
+              />
+            </Group>
+          </UnstyledButton>
 
           <Collapse expanded={expanded}>
             <Stack gap={4} mt="xs">

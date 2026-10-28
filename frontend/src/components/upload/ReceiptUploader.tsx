@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Stack, Text, Alert, Loader, Center, Group, Button, Badge } from '@mantine/core'
+import { Stack, Text, Alert, Loader, Center, Group, Button, Badge, ThemeIcon } from '@mantine/core'
+import { IconAlertTriangle, IconBolt, IconCircleCheck, IconCloudUpload, IconRefresh } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { uploadReceipt } from '../../api/ocr'
 import ImageEditor from './ImageEditor'
@@ -112,7 +113,7 @@ export default function ReceiptUploader({ billId, ocrOk, onComplete, onClear, ex
         />
       )}
       {!ocrOk && (
-        <Alert color="orange" title="OCR unavailable">
+        <Alert color="orange" variant="light" title="OCR unavailable" icon={<IconAlertTriangle size={18} />}>
           The OpenAI API is not reachable. Check that <code>OPENAI_API_KEY</code> is set
           correctly in the backend <code>.env</code> file. Scanning will fail without it.
         </Alert>
@@ -120,15 +121,9 @@ export default function ReceiptUploader({ billId, ocrOk, onComplete, onClear, ex
 
       <div
         {...getRootProps()}
-        style={{
-          border: '2px dashed var(--mantine-color-blue-4)',
-          borderRadius: 8,
-          padding: 40,
-          textAlign: 'center',
-          cursor: uploading ? 'wait' : 'pointer',
-          background: isDragActive ? 'var(--mantine-color-blue-0)' : undefined,
-          transition: 'background 0.2s',
-        }}
+        className="fs-dropzone"
+        data-active={isDragActive}
+        data-uploading={uploading}
       >
         <input {...getInputProps()} />
         {uploading ? (
@@ -139,11 +134,14 @@ export default function ReceiptUploader({ billId, ocrOk, onComplete, onClear, ex
             </Stack>
           </Center>
         ) : (
-          <Stack align="center" gap={4}>
-            <Text c="dimmed">
+          <Stack align="center" gap={6}>
+            <ThemeIcon size={56} radius="xl" variant="light">
+              <IconCloudUpload size={30} />
+            </ThemeIcon>
+            <Text fw={600} mt={4}>
               {isDragActive ? 'Drop receipt images here...' : 'Drag & drop receipt photos here, or click to select'}
             </Text>
-            <Text size="xs" c="dimmed">You can upload multiple pages at once</Text>
+            <Text size="xs" c="dimmed">You can upload multiple pages at once · JPG, PNG, WEBP, BMP, TIFF</Text>
           </Stack>
         )}
       </div>
@@ -152,17 +150,17 @@ export default function ReceiptUploader({ billId, ocrOk, onComplete, onClear, ex
         <Group justify="space-between" align="center">
           <Group gap="sm">
             {extractedCount > 0 && (
-              <Badge size="lg" color="green">
+              <Badge size="lg" color="green" variant="light" leftSection={<IconCircleCheck size={14} />}>
                 {extractedCount} item{extractedCount !== 1 ? 's' : ''} extracted
               </Badge>
             )}
             {processingMs !== null && (
-              <Badge size="lg" color="blue" variant="light">
+              <Badge size="lg" color="blue" variant="light" leftSection={<IconBolt size={14} />}>
                 OCR + LLM — {formatTime(processingMs)}
               </Badge>
             )}
           </Group>
-          <Button variant="subtle" color="red" size="xs" loading={clearing} onClick={handleClear}>
+          <Button variant="subtle" color="red" size="xs" leftSection={<IconRefresh size={14} />} loading={clearing} onClick={handleClear}>
             Clear all &amp; start over
           </Button>
         </Group>

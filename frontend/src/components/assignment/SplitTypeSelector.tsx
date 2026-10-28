@@ -64,7 +64,7 @@ export default function SplitTypeSelector({ persons, checkedPersonIds, splits, i
             const split = splits.find(s => s.person_id === p.id)
             return (
               <Group key={p.id} gap="xs" mb={4}>
-                <Badge size="sm" style={{ background: p.color, color: '#fff', minWidth: 80 }}>
+                <Badge size="sm" tt="none" style={{ background: p.color, color: '#fff', minWidth: 80 }}>
                   {p.name}
                 </Badge>
                 <NumberInput

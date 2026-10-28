@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Stack, Button, Text, Table } from '@mantine/core'
+import { Stack, Button, Text, Table, ScrollArea, ThemeIcon } from '@mantine/core'
+import { IconListDetails, IconPlus } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { addItem, updateItem, deleteItem } from '../../api/items'
 import type { BillItem } from '../../types'
@@ -61,24 +62,33 @@ export default function ItemList({ billId, items, onChange }: Props) {
 
   if (items.length === 0) {
     return (
-      <Stack>
+      <Stack align="center" gap="sm" py="xl">
+        <ThemeIcon size={56} radius="xl" variant="light" color="gray">
+          <IconListDetails size={28} />
+        </ThemeIcon>
         <Text c="dimmed" ta="center">No items yet. Upload a receipt or add items manually.</Text>
-        <Button variant="default" onClick={handleAddItem} loading={adding}>+ Add Item</Button>
+        <Button variant="default" leftSection={<IconPlus size={16} />} onClick={handleAddItem} loading={adding}>Add Item</Button>
       </Stack>
     )
   }
 
   return (
     <Stack>
-      <Table striped highlightOnHover withTableBorder withColumnBorders>
+      <div>
+        <Text fw={600}>Review items</Text>
+        <Text size="sm" c="dimmed">Click any cell to edit. Mark taxes, tips and fees as tax lines.</Text>
+      </div>
+
+      <ScrollArea>
+        <Table className="fs-table" highlightOnHover withTableBorder verticalSpacing="xs" miw={620}>
         <Table.Thead>
           <Table.Tr>
             <Table.Th w={40}>#</Table.Th>
             <Table.Th>Item</Table.Th>
             <Table.Th w={80}>Qty</Table.Th>
             <Table.Th w={100}>Unit Price</Table.Th>
-            <Table.Th w={100}>Total</Table.Th>
-            <Table.Th w={80}>Tax?</Table.Th>
+            <Table.Th w={100} ta="right">Total</Table.Th>
+            <Table.Th w={80} ta="center">Tax?</Table.Th>
             <Table.Th w={60}></Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -93,10 +103,11 @@ export default function ItemList({ billId, items, onChange }: Props) {
             />
           ))}
         </Table.Tbody>
-      </Table>
+        </Table>
+      </ScrollArea>
 
-      <Button variant="default" onClick={handleAddItem} loading={adding} w="fit-content">
-        + Add Item Manually
+      <Button variant="light" leftSection={<IconPlus size={16} />} onClick={handleAddItem} loading={adding} w="fit-content">
+        Add Item Manually
       </Button>
     </Stack>
   )
