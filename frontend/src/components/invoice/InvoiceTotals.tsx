@@ -1,4 +1,4 @@
-import { Alert, Group, Stack, Text, Divider } from '@mantine/core'
+import { Alert, Group, Stack, Text } from '@mantine/core'
 import { IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react'
 import type { BillItem } from '../../types'
 import { formatMoney, totalMismatch } from '../../utils/invoice'
@@ -12,8 +12,8 @@ interface Props {
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <Group justify="space-between">
-      <Text size="sm" c={strong ? undefined : 'dimmed'} fw={strong ? 700 : 400}>{label}</Text>
-      <Text size={strong ? 'md' : 'sm'} fw={strong ? 700 : 500}>{value}</Text>
+      <Text size="sm" c={strong ? undefined : 'dimmed'} fw={strong ? 600 : 400}>{label}</Text>
+      <Text className="fs-amount" fz={strong ? 22 : 'sm'} fw={strong ? 600 : 500}>{value}</Text>
     </Group>
   )
 }
@@ -25,11 +25,16 @@ export default function InvoiceTotals({ items, currency, extractedTotal }: Props
   const mismatch = totalMismatch(extractedTotal, total)
 
   return (
-    <Stack gap="xs" maw={420} ml="auto" w="100%">
-      <Row label="Subtotal" value={formatMoney(total - tax, currency)} />
-      <Row label="Tax" value={formatMoney(tax, currency)} />
-      <Divider />
-      <Row label="Total" value={formatMoney(total, currency)} strong />
+    <Stack gap="lg" maw={420} ml="auto" w="100%">
+      {/* The bottom of a till slip: dashed rule above the total, torn edge below. */}
+      <div className="fs-receipt">
+        <Stack gap={8}>
+          <Row label="Subtotal" value={formatMoney(total - tax, currency)} />
+          <Row label="Tax" value={formatMoney(tax, currency)} />
+          <div className="fs-receipt-rule" />
+          <Row label="Total" value={formatMoney(total, currency)} strong />
+        </Stack>
+      </div>
 
       {mismatch === 0 && (
         <Alert color="green" variant="light" icon={<IconCircleCheck size={18} />} p="xs">

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Table, TextInput, NumberInput, Checkbox, ActionIcon, Badge, Group, Text, Tooltip } from '@mantine/core'
 import { IconTrash } from '@tabler/icons-react'
 import type { BillItem } from '../../types'
+import { useBillStore } from '../../store/billStore'
+import { currencySymbol, formatMoney } from '../../utils/invoice'
 
 interface Props {
   item: BillItem
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export default function ItemRow({ item, number, onUpdate, onDelete }: Props) {
+  const currency = useBillStore(s => s.bill?.currency ?? null)
   const [name, setName] = useState(item.name)
   const [qty, setQty] = useState(item.quantity)
   const [price, setPrice] = useState(item.unit_price)
@@ -70,12 +73,12 @@ export default function ItemRow({ item, number, onUpdate, onDelete }: Props) {
           variant="unstyled"
           min={0}
           decimalScale={2}
-          prefix="$"
+          prefix={currencySymbol(currency)}
           hideControls
         />
       </Table.Td>
       <Table.Td ta="right">
-        <Text size="sm" fw={500}>${(item.total_price ?? qty * price).toFixed(2)}</Text>
+        <Text size="sm" fw={500} className="fs-amount">{formatMoney(item.total_price ?? qty * price, currency)}</Text>
       </Table.Td>
       <Table.Td>
         <Checkbox

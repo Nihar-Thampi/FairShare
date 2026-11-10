@@ -96,8 +96,8 @@ def calculate_bill(bill_id: int) -> list[dict]:
                 total_custom = sum(a["split_value"] or 0 for a in assignments)
                 if abs(total_custom - item["total_price"]) > 0.01:
                     raise SplitValidationError(
-                        f"Custom amounts for '{item['name']}' sum to ${total_custom:.2f}, "
-                        f"but item total is ${item['total_price']:.2f}."
+                        f"Custom amounts for '{item['name']}' sum to {total_custom:.2f}, "
+                        f"but item total is {item['total_price']:.2f}."
                     )
                 for a in assignments:
                     pid = a["person_id"]

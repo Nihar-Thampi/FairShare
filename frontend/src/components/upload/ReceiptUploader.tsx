@@ -5,12 +5,12 @@ import { IconAlertTriangle, IconBolt, IconCircleCheck, IconCloudUpload, IconRefr
 import { notifications } from '@mantine/notifications'
 import { uploadReceipt } from '../../api/ocr'
 import ImageEditor from './ImageEditor'
-import type { BillItem } from '../../types'
+import type { Bill, BillItem } from '../../types'
 
 interface Props {
   billId: number
   ocrOk: boolean
-  onComplete: (items: BillItem[], businessName: string | null) => void
+  onComplete: (items: BillItem[], bill: Bill) => void
   onClear: () => Promise<void>
   extractedCount: number
 }
@@ -34,13 +34,13 @@ export default function ReceiptUploader({ billId, ocrOk, onComplete, onClear, ex
       const result = await uploadReceipt(billId, files)
       if (result.processing_time_ms != null) setProcessingMs(result.processing_time_ms)
       notifications.show({
-        title: 'Receipt processed',
+        title: 'Invoice scanned',
         message: files.length > 1
           ? `Processed ${files.length} pages — ${result.items.length} item(s) total`
           : `Extracted ${result.items.length} item(s)`,
         color: 'green',
       })
-      onComplete(result.items, result.business_name)
+      onComplete(result.items, result.bill)
     } catch (e: unknown) {
       notifications.show({ title: 'Upload failed', message: e instanceof Error ? e.message : 'Upload failed', color: 'red' })
     }
@@ -139,7 +139,7 @@ export default function ReceiptUploader({ billId, ocrOk, onComplete, onClear, ex
               <IconCloudUpload size={30} />
             </ThemeIcon>
             <Text fw={600} mt={4}>
-              {isDragActive ? 'Drop receipt images here...' : 'Drag & drop receipt photos here, or click to select'}
+              {isDragActive ? 'Drop invoice images here...' : 'Drag & drop photos or scans of an invoice or receipt, or click to select'}
             </Text>
             <Text size="xs" c="dimmed">You can upload multiple pages at once · JPG, PNG, WEBP, BMP, TIFF</Text>
           </Stack>

@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request, g, send_from_directory
 from app.database import get_db
 from app.middleware.auth import require_auth
 from app.config import UPLOAD_FOLDER
+from app.services.invoice_service import validate_invoice_update, InvoiceFieldError
 
 bills_bp = Blueprint("bills", __name__)
 
@@ -16,9 +17,24 @@ def _owned_bill(db, bill_id: int, user_id: int):
 def list_bills():
     with get_db() as db:
         rows = db.execute(
-            "SELECT * FROM bills WHERE user_id = ? ORDER BY created_at DESC", (g.user_id,)
+            """SELECT b.*,
+                      COALESCE(SUM(bi.total_price), 0)                                AS total,
+                      COALESCE(SUM(CASE WHEN bi.is_tax_line = 1 THEN bi.total_price END), 0) AS tax_total,
+                      COUNT(bi.id)                                                    AS item_count
+               FROM bills b
+               LEFT JOIN bill_items bi ON bi.bill_id = b.id
+               WHERE b.user_id = ?
+               GROUP BY b.id
+               ORDER BY COALESCE(b.invoice_date, date(b.created_at)) DESC, b.id DESC""",
+            (g.user_id,)
         ).fetchall()
-    return jsonify([dict(r) for r in rows])
+    bills = []
+    for r in rows:
+        bill = dict(r)
+        bill["total"] = round(bill["total"], 2)
+        bill["tax_total"] = round(bill["tax_total"], 2)
+        bills.append(bill)
+    return jsonify(bills)
 
 
 @bills_bp.route("/bills", methods=["POST"])
@@ -66,6 +82,14 @@ def update_bill(bill_id):
                 return jsonify({"error": f"Invalid status. Must be one of {valid}"}), 422
             fields.append("status = ?")
             values.append(data["status"])
+
+        try:
+            invoice_updates = validate_invoice_update(data)
+        except InvoiceFieldError as e:
+            return jsonify({"error": str(e)}), 422
+        for column, value in invoice_updates.items():
+            fields.append(f"{column} = ?")
+            values.append(value)
 
         if fields:
             fields.append("updated_at = datetime('now')")
@@ -256,8 +280,14 @@ def clear_items(bill_id):
         )
         db.execute("DELETE FROM bill_items WHERE bill_id = ?", (bill_id,))
         db.execute("DELETE FROM calculation_results WHERE bill_id = ?", (bill_id,))
+        # Scan-derived invoice fields go too, so the next scan can fill them again.
+        # Category, notes and payment status are user-entered and are kept.
         db.execute(
-            "UPDATE bills SET image_path = NULL, status = 'draft', updated_at = datetime('now') WHERE id = ?",
+            """UPDATE bills SET image_path = NULL, status = 'draft',
+                   vendor_name = NULL, invoice_number = NULL, invoice_date = NULL,
+                   due_date = NULL, currency = NULL, extracted_total = NULL,
+                   updated_at = datetime('now')
+               WHERE id = ?""",
             (bill_id,)
         )
 

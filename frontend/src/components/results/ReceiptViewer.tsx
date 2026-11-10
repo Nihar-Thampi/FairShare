@@ -80,14 +80,14 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
 
   return (
     <>
-      <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: '0.04em' }}>Uploaded receipt</Text>
+      <Text size="xs" fw={600} c="dimmed" tt="uppercase" style={{ letterSpacing: '0.04em' }}>Scanned invoice</Text>
       <Group gap="sm" wrap="wrap">
         {entries.map(({ filename, url }) => (
           <div key={filename} className="fs-receipt-thumb">
             <UnstyledButton onClick={() => editable ? handleEditClick(filename, url) : setEnlarged(url)}>
               <img
                 src={url}
-                alt="Receipt"
+                alt="Scanned invoice page"
                 style={{
                   height: 160,
                   width: 'auto',
@@ -102,7 +102,7 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
               <Tooltip label="Re-adjust image" withArrow>
                 <ActionIcon
                   size="md"
-                  color="teal"
+                  color="ink"
                   variant="filled"
                   radius="xl"
                   onClick={() => handleEditClick(filename, url)}
@@ -140,12 +140,12 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
         size="xl"
         padding="xs"
         centered
-        title={entries.length > 1 ? `Page ${entries.findIndex(e => e.url === enlarged) + 1} of ${entries.length}` : 'Receipt'}
+        title={entries.length > 1 ? `Page ${entries.findIndex(e => e.url === enlarged) + 1} of ${entries.length}` : 'Scanned invoice'}
       >
         {enlarged && (
           <img
             src={enlarged}
-            alt="Receipt"
+            alt="Scanned invoice page"
             style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }}
           />
         )}

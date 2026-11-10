@@ -1,12 +1,10 @@
 .fs-hover-card {
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+  transition: border-color 120ms ease;
 }
 
 .fs-hover-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--mantine-shadow-md);
-  border-color: var(--mantine-color-teal-3);
+  border-color: var(--mantine-color-ink-3);
 }
 
 .fs-dropzone {
@@ -21,8 +19,8 @@
 
 .fs-dropzone:hover,
 .fs-dropzone[data-active='true'] {
-  border-color: var(--mantine-color-teal-5);
-  background: var(--mantine-color-teal-0);
+  border-color: var(--mantine-color-ink-5);
+  background: var(--mantine-color-ink-0);
 }
 
 .fs-dropzone[data-uploading='true'] {
@@ -30,12 +28,19 @@
 }
 
 .fs-table thead th {
-  background: var(--mantine-color-gray-0);
+  background: transparent;
   font-size: var(--mantine-font-size-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--mantine-color-gray-7);
+  font-weight: 500;
+  color: var(--fs-ink-muted);
+  border-bottom: 1px solid var(--fs-rule);
+}
+
+.fs-table tbody tr {
+  transition: background-color 120ms ease;
+}
+
+.fs-table tbody tr:hover {
+  background-color: var(--mantine-color-ink-0);
 }
 
 .fs-click-row {
@@ -43,12 +48,12 @@
 }
 
 .fs-click-row:focus-visible {
-  outline: 2px solid var(--mantine-color-teal-5);
+  outline: 2px solid var(--mantine-color-ink-5);
   outline-offset: -2px;
 }
 
 .fs-tax-row {
-  background: var(--mantine-color-yellow-0) !important;
+  background: var(--mantine-color-highlight-0) !important;
 }
 
 .fs-receipt-thumb {
@@ -59,4 +64,113 @@
   border: 1px solid var(--mantine-color-gray-3);
   box-shadow: var(--mantine-shadow-xs);
   background: var(--mantine-color-white);
+}
+
+/* ---- Receipt language ---------------------------------------------------- */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: var(--mantine-color-highlight-2);
+  color: #1b2233;
+}
+
+/* Money is set like a till slip: monospaced, tabular, so columns of amounts line up. */
+.fs-amount {
+  font-family: var(--mantine-font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* The statement strip: the page's figures in one bordered row, divided by rules. */
+.fs-statement {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--fs-paper);
+  border: 1px solid var(--fs-rule);
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+}
+
+.fs-statement > * {
+  padding: 16px 18px;
+  border-right: 1px solid var(--fs-rule);
+}
+
+.fs-statement > *:last-child {
+  border-right: 0;
+}
+
+@media (max-width: 48em) {
+  .fs-statement {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fs-statement > *:nth-child(2n) {
+    border-right: 0;
+  }
+  .fs-statement > *:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--fs-rule);
+  }
+}
+
+/* Totals panel: the bottom of a receipt, with a torn, perforated edge. */
+.fs-receipt {
+  position: relative;
+  background: var(--fs-paper);
+  border: 1px solid var(--fs-rule);
+  border-bottom: 0;
+  border-radius: var(--mantine-radius-sm) var(--mantine-radius-sm) 0 0;
+  padding: 16px 18px 22px;
+}
+
+.fs-receipt::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  bottom: -8px;
+  height: 8px;
+  background:
+    linear-gradient(-45deg, transparent 5.5px, var(--fs-paper) 6px) 0 0 / 12px 8px repeat-x,
+    linear-gradient(45deg, transparent 5.5px, var(--fs-paper) 6px) 0 0 / 12px 8px repeat-x;
+  filter: drop-shadow(0 1px 0 var(--fs-rule));
+}
+
+.fs-receipt-rule {
+  border-top: 1px dashed var(--fs-rule);
+}
+
+/* Payment status as a rubber stamp: outlined, letter-spaced, in stamp-pad ink. */
+.fs-stamp.fs-stamp {
+  background: transparent;
+  border: 1.5px solid currentColor;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+  font-family: var(--mantine-font-family-monospace);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.mantine-Button-root:active:not(:disabled),
+.mantine-ActionIcon-root:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

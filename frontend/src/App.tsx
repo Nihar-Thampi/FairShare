@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   AppShell, Container, Anchor, Group, Avatar, Menu, Text, UnstyledButton,
 } from '@mantine/core'
 import { IconChevronDown, IconLogout } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import Logo from './components/layout/Logo'
-import HomePage from './pages/HomePage'
-import BillPage from './pages/BillPage'
+import InvoicesPage from './pages/InvoicesPage'
+import InvoicePage from './pages/InvoicePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import { useAuthStore } from './store/authStore'
@@ -30,7 +30,7 @@ function ProtectedLayout() {
 
   return (
     <AppShell header={{ height: 64 }} padding={0}>
-      <AppShell.Header withBorder style={{ boxShadow: 'var(--mantine-shadow-xs)' }}>
+      <AppShell.Header withBorder style={{ background: 'var(--mantine-color-body)' }}>
         <Container size="lg" h="100%">
           <Group justify="space-between" h="100%">
             <Anchor component={Link} to="/" underline="never">
@@ -38,7 +38,7 @@ function ProtectedLayout() {
             </Anchor>
 
             {user && (
-              <Menu position="bottom-end" withinPortal shadow="md" width={220}>
+              <Menu position="bottom-end" withinPortal width={220}>
                 <Menu.Target>
                   <UnstyledButton
                     px="xs"
@@ -47,7 +47,7 @@ function ProtectedLayout() {
                     aria-label="Account menu"
                   >
                     <Group gap="xs">
-                      <Avatar color="teal" radius="xl" size={32}>
+                      <Avatar color="ink" radius="xl" size={32}>
                         {user.name[0].toUpperCase()}
                       </Avatar>
                       <Text size="sm" fw={500} visibleFrom="sm">{user.name}</Text>
@@ -68,7 +68,7 @@ function ProtectedLayout() {
         </Container>
       </AppShell.Header>
 
-      <AppShell.Main bg="gray.0" mih="100vh">
+      <AppShell.Main mih="100vh">
         <Container size="lg" py="xl">
           <Outlet />
         </Container>
@@ -83,11 +83,18 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route element={<ProtectedLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/bills/:id" element={<BillPage />} />
+        <Route path="/" element={<InvoicesPage />} />
+        <Route path="/invoices/:id" element={<InvoicePage />} />
+        <Route path="/bills/:id" element={<LegacyBillRedirect />} />
       </Route>
     </Routes>
   )
+}
+
+/** Old /bills/:id links still work after the move to /invoices/:id. */
+function LegacyBillRedirect() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/invoices/${id}`} replace />
 }
 
 export default App

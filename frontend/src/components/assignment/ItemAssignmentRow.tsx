@@ -4,6 +4,8 @@ import { notifications } from '@mantine/notifications'
 import type { BillItem, Person, Assignment, SplitType } from '../../types'
 import SplitTypeSelector, { type PersonSplit } from './SplitTypeSelector'
 import { replaceAssignments, clearAssignments } from '../../api/assignments'
+import { useBillStore } from '../../store/billStore'
+import { formatMoney } from '../../utils/invoice'
 
 interface Props {
   item: BillItem
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function ItemAssignmentRow({ item, persons, assignments, onSaved }: Props) {
+  const currency = useBillStore(s => s.bill?.currency ?? null)
   const isTax = item.is_tax_line === 1
 
   // Build initial splits state from existing assignments
@@ -124,7 +127,7 @@ export default function ItemAssignmentRow({ item, persons, assignments, onSaved 
             {isTax && <Badge color="yellow" size="xs">TAX</Badge>}
             <Text size="sm" fw={isTax ? 600 : undefined}>{item.name}</Text>
           </Group>
-          <Text size="xs" c="dimmed">${item.total_price.toFixed(2)}</Text>
+          <Text size="xs" c="dimmed">{formatMoney(item.total_price, currency)}</Text>
         </Stack>
       </Table.Td>
 

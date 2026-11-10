@@ -79,10 +79,23 @@ Rules:
 8. Return ONLY valid JSON matching the schema below. No markdown, no explanation, no extra text.
 9. Completeness check: before finalising your output, verify that every non-header/footer line
    containing numbers has produced exactly one item in the output. A name you do not recognise
-   is never a reason to omit an entry."""
+   is never a reason to omit an entry.
+10. INVOICE DETAILS: header and footer lines are never items, but report these values in the
+   top-level fields of the schema. Use null for anything not printed on this page; never guess.
+   - invoice_number: the bill/invoice/receipt number exactly as printed (not a table or order number).
+   - invoice_date / due_date: ISO format YYYY-MM-DD. Only fill due_date from an explicit
+     "Due", "Due date" or "Pay by" label.
+   - currency: ISO 4217 code from the currency symbol or label (₹/Rs → INR, € → EUR, £ → GBP,
+     $ → USD unless the text says otherwise).
+   - grand_total: the final amount payable printed on the bill (Grand Total, Total, Amount Due).
+   - subtotal: the printed subtotal before tax, if any."""
 
 OUTPUT_SCHEMA = """{
   "business_name": "string or null",
+  "invoice_number": "string or null",
+  "invoice_date": "YYYY-MM-DD or null",
+  "due_date": "YYYY-MM-DD or null",
+  "currency": "ISO 4217 code or null",
   "items": [
     {
       "name": "string",

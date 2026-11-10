@@ -1,16 +1,17 @@
 import client from './client'
-import type { Bill, BillItem } from '../types'
+import type { Bill, BillItem, BillSummary, InvoiceFields } from '../types'
 
 export const getBills = (signal?: AbortSignal) =>
-  client.get<Bill[]>('/bills', { signal }).then(r => r.data)
+  client.get<BillSummary[]>('/bills', { signal }).then(r => r.data)
 
-export const createBill = (name: string) =>
-  client.post<Bill>('/bills', { name }).then(r => r.data)
+/** Omit the name to let the first scan name the invoice after its vendor. */
+export const createBill = (name?: string) =>
+  client.post<Bill>('/bills', name ? { name } : {}).then(r => r.data)
 
 export const getBill = (id: number, signal?: AbortSignal) =>
   client.get<Bill & { items: BillItem[] }>(`/bills/${id}`, { signal }).then(r => r.data)
 
-export const updateBill = (id: number, data: Partial<Pick<Bill, 'name' | 'status'>>) =>
+export const updateBill = (id: number, data: InvoiceFields & Partial<Pick<Bill, 'status'>>) =>
   client.patch<Bill>(`/bills/${id}`, data).then(r => r.data)
 
 export const deleteBill = (id: number) => client.delete(`/bills/${id}`)

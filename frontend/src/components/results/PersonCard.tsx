@@ -2,17 +2,20 @@ import { Card, Text, Group, Avatar, Collapse, UnstyledButton, Stack, Divider } f
 import { IconChevronDown } from '@tabler/icons-react'
 import { useState } from 'react'
 import type { PersonResult } from '../../types'
+import { useBillStore } from '../../store/billStore'
+import { formatMoney } from '../../utils/invoice'
 
 interface Props {
   result: PersonResult
 }
 
 export default function PersonCard({ result }: Props) {
+  const currency = useBillStore(s => s.bill?.currency ?? null)
   const [expanded, setExpanded] = useState(false)
   const { person, subtotal, tax_share, total, breakdown } = result
 
   return (
-    <Card withBorder shadow="xs" radius="md" p="lg" style={{ borderTop: `4px solid ${person.color}` }}>
+    <Card withBorder radius="md" p="lg" style={{ borderTop: `4px solid ${person.color}` }}>
       <Group justify="space-between" mb="md" wrap="nowrap">
         <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
           <Avatar radius="xl" size={36} styles={{ placeholder: { color: '#fff', background: person.color } }}>
@@ -20,17 +23,17 @@ export default function PersonCard({ result }: Props) {
           </Avatar>
           <Text fw={600} lineClamp={1}>{person.name}</Text>
         </Group>
-        <Text fw={700} fz={24}>${total.toFixed(2)}</Text>
+        <Text fw={700} fz={24}>{formatMoney(total, currency)}</Text>
       </Group>
 
       <Group gap="xl">
         <div>
           <Text size="xs" c="dimmed">Food</Text>
-          <Text size="sm" fw={500}>${subtotal.toFixed(2)}</Text>
+          <Text size="sm" fw={500}>{formatMoney(subtotal, currency)}</Text>
         </div>
         <div>
           <Text size="xs" c="dimmed">Tax/Fees</Text>
-          <Text size="sm" fw={500}>${tax_share.toFixed(2)}</Text>
+          <Text size="sm" fw={500}>{formatMoney(tax_share, currency)}</Text>
         </div>
       </Group>
 
@@ -60,7 +63,7 @@ export default function PersonCard({ result }: Props) {
                   <Text size="xs" c="dimmed" lineClamp={1} style={{ flex: 1 }}>
                     {b.item_name}
                   </Text>
-                  <Text size="xs">${b.amount.toFixed(2)}</Text>
+                  <Text size="xs">{formatMoney(b.amount, currency)}</Text>
                 </Group>
               ))}
             </Stack>

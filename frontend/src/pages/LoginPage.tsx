@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   return (
     <AuthLayout title="Welcome back" subtitle="Sign in to your account to continue">
-      <Alert color="teal" variant="light" title="Default admin account" icon={<IconInfoCircle size={18} />}>
+      <Alert color="ink" variant="light" title="Default admin account" icon={<IconInfoCircle size={18} />}>
         <Text size="xs">Email: <strong>admin@admin.com</strong></Text>
         <Text size="xs">Password: <strong>admin123</strong></Text>
       </Alert>

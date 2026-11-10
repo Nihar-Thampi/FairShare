@@ -1,5 +1,7 @@
 import { SegmentedControl, Group, NumberInput, Text, Badge } from '@mantine/core'
 import type { SplitType, Person } from '../../types'
+import { useBillStore } from '../../store/billStore'
+import { currencySymbol, formatMoney } from '../../utils/invoice'
 
 export interface PersonSplit {
   person_id: number
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export default function SplitTypeSelector({ persons, checkedPersonIds, splits, itemTotal, onChange }: Props) {
+  const currency = useBillStore(s => s.bill?.currency ?? null)
   const currentType = splits[0]?.split_type ?? 'equal'
 
   const assignedPersons = persons.filter(p => checkedPersonIds.includes(p.id))
@@ -71,7 +74,7 @@ export default function SplitTypeSelector({ persons, checkedPersonIds, splits, i
                   size="xs"
                   value={split?.split_value ?? 0}
                   onChange={v => handleValueChange(p.id, Number(v))}
-                  prefix={currentType === 'custom' ? '$' : undefined}
+                  prefix={currentType === 'custom' ? currencySymbol(currency) : undefined}
                   suffix={currentType === 'percentage' ? '%' : undefined}
                   min={0}
                   decimalScale={2}
@@ -84,7 +87,7 @@ export default function SplitTypeSelector({ persons, checkedPersonIds, splits, i
           <Text size="xs" c={currentType === 'percentage' ? (pctValid ? 'green' : 'red') : (customValid ? 'green' : 'red')} mt={4}>
             {currentType === 'percentage'
               ? `Total: ${totalPct.toFixed(2)}% ${pctValid ? '✓' : '(must equal 100%)'}`
-              : `Total: $${totalCustom.toFixed(2)} ${customValid ? '✓' : `(must equal $${itemTotal.toFixed(2)})`}`
+              : `Total: ${formatMoney(totalCustom, currency)} ${customValid ? '✓' : `(must equal ${formatMoney(itemTotal, currency)})`}`
             }
           </Text>
         </div>

@@ -11,19 +11,11 @@ interface Props {
 
 export default function AuthLayout({ title, subtitle, width = 420, children }: Props) {
   return (
-    <Box
-      mih="100vh"
-      style={{
-        background:
-          'radial-gradient(1200px 600px at 10% -10%, var(--mantine-color-teal-1), transparent 60%),' +
-          'radial-gradient(900px 500px at 110% 110%, var(--mantine-color-cyan-1), transparent 60%),' +
-          'var(--mantine-color-gray-0)',
-      }}
-    >
+    <Box mih="100vh">
       <Center mih="100vh" px="md" py="xl">
         <Stack align="center" gap="lg" w="100%" maw={width}>
           <Logo size="lg" />
-          <Paper shadow="md" p={{ base: 'lg', xs: 32 }} radius="lg" withBorder w="100%">
+          <Paper className="fs-receipt" p={{ base: 'lg', xs: 32 }} pb={{ base: 28, xs: 40 }} w="100%">
             <Stack gap="lg">
               <Stack gap={4}>
                 <Title order={3}>{title}</Title>
@@ -32,7 +24,7 @@ export default function AuthLayout({ title, subtitle, width = 420, children }: P
               {children}
             </Stack>
           </Paper>
-          <Text size="xs" c="dimmed">Split bills fairly, item by item.</Text>
+          <Text size="xs" c="dimmed">Scan invoices, track what you owe, split bills when you need to.</Text>
         </Stack>
       </Center>
     </Box>

@@ -1,14 +1,37 @@
 # FairShare
 
-FairShare is a bill-splitting web app. Snap a photo of a receipt, let OCR + an LLM turn it into structured line items, assign each item to the people who ordered it, and get an exact per-person total (including a fair share of tax).
+FairShare is an invoice management web app. Upload a photo or scan of an invoice or receipt, and OCR + an LLM extract the vendor, invoice number, dates, currency and every line item. Track what is unpaid or overdue, export to CSV, and, when a bill is shared, split it between people item by item.
 
-## How it works
+## Screenshots
 
-1. **Upload** a photo of a receipt (multi-page bills are supported).
-2. **OCR** ([EasyOCR](https://github.com/JaidedAI/EasyOCR)) extracts raw text from the image.
-3. **LLM parsing** (OpenAI, `gpt-4o-mini` by default) turns the raw OCR text into clean structured items — stripping headers/footers, totals, optional charges, and fixing common OCR mistakes (misread currency symbols, garbled quantities, duplicated/split lines, etc.).
-4. **Assign** each item to one or more people, splitting it equally, by percentage, or by custom amount.
-5. **Calculate** — tax is split evenly across everyone, item costs are split per the assignments, and a final rounding pass ensures individual totals always add up to the bill's grand total.
+![Invoices](docs/screenshots/01-invoices.png)
+
+| | |
+|---|---|
+| <img src="docs/screenshots/02-invoice-details.png" alt="Invoice details"><br><sub>Invoice details</sub> | <img src="docs/screenshots/03-line-items-and-totals.png" alt="Line items and totals check"><br><sub>Line items and totals check</sub> |
+| <img src="docs/screenshots/04-split-bill.png" alt="Split a bill by item"><br><sub>Split a bill by item</sub> | <img src="docs/screenshots/05-split-results.png" alt="What each person owes"><br><sub>What each person owes</sub> |
+| <img src="docs/screenshots/06-scan.png" alt="Scan an invoice"><br><sub>Scan an invoice</sub> | <img src="docs/screenshots/07-login.png" alt="Sign in"><br><sub>Sign in</sub> |
+| <img src="docs/screenshots/08-register.png" alt="Create an account"><br><sub>Create an account</sub> |  |
+
+<img src="docs/screenshots/09-mobile-invoices.png" alt="Phone" width="300">
+
+Screenshots use demo or dummy data.
+
+
+## Features
+
+**Invoices**
+- **Scan to extract**: OCR ([EasyOCR](https://github.com/JaidedAI/EasyOCR)) reads the image and an LLM (OpenAI, `gpt-4o-mini` by default) turns it into structured data: vendor, invoice number, invoice and due dates, currency, printed total, and line items with tax lines marked. Multi-page invoices are supported.
+- **Totals check**: the sum of the extracted line items is compared with the total printed on the invoice, and a warning shows any difference so a missed or misread line is caught.
+- **Review and edit**: every extracted field and line item can be corrected. Scans only fill empty fields, so a rescan never overwrites your edits.
+- **Payment tracking**: mark invoices paid or unpaid; anything unpaid past its due date shows as overdue.
+- **Dashboard**: outstanding, overdue and paid-this-month amounts (kept separate per currency), with search and filters by status and category.
+- **CSV export** of the filtered invoice list. Cells are escaped so values from scanned documents cannot run as spreadsheet formulas.
+
+**Split bill (optional tab on each invoice)**
+1. Add the people sharing the bill.
+2. Assign each line item to one or more people, split equally, by percentage, or by custom amount.
+3. Calculate: tax is split evenly, item costs follow the assignments, and a rounding pass makes individual totals add up exactly to the invoice total.
 
 ## Tech stack
 
@@ -52,6 +75,21 @@ FairShare/
     │   └── App.tsx               # routing + protected layout
     └── package.json
 ```
+
+## Running with Docker (Windows and macOS)
+
+Docker keeps everything that differs between Windows and macOS (`node_modules`, Python packages, native binaries, downloaded models) inside images and Docker volumes. OneDrive then syncs only source code and data, so an update made on one machine runs on the other after one command. Needs Docker Desktop.
+
+```bash
+docker compose up -d --build      # http://localhost:8083
+```
+
+- **Settings:** read from `backend/.env` (`OPENAI_API_KEY`, `JWT_SECRET`).
+- **Data:** `backend/data` (the database) and `backend/uploads` (invoice images) are mounted from this folder, synced by OneDrive. EasyOCR's models are downloaded once into the `easyocr-models` Docker volume.
+- **Port:** `FAIRSHARE_PORT=9000 docker compose up -d`.
+- **After pulling or syncing an update:** run `docker compose up -d --build` again; only the changed layers rebuild.
+- **Logs:** `docker compose logs -f backend`. **Stop:** `docker compose down`.
+- **Live reload while editing:** `docker compose -f docker-compose.dev.yml up --build`, then open http://localhost:5183. Code changes on either machine reload the running app. The frontend's `node_modules` lives in a Docker volume and is reinstalled only when `package-lock.json` changes.
 
 ## Getting started
 
@@ -123,7 +161,7 @@ All routes are prefixed with `/api`. Except for `auth/register`, `auth/login`, `
 | Resource | Routes |
 |---|---|
 | Auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `GET /auth/me` |
-| Bills | `GET/POST /bills`, `GET/PATCH/DELETE /bills/:id`, image upload/replace/delete under `/bills/:id/images/:filename` |
+| Invoices (`bills`) | `GET/POST /bills`, `GET/PATCH/DELETE /bills/:id`, image upload/replace/delete under `/bills/:id/images/:filename`. `GET /bills` includes `total`, `tax_total` and `item_count`; `PATCH` accepts the invoice fields below |
 | Items | `GET/POST/DELETE /bills/:id/items`, `PATCH/DELETE /items/:id` |
 | Persons | `GET/POST /bills/:id/persons`, `DELETE /persons/:id` |
 | Assignments | `GET /bills/:id/assignments`, `PUT/DELETE /items/:id/assignments`, `PUT/DELETE /bills/:id/assignments/person/:id` |
@@ -133,7 +171,18 @@ All routes are prefixed with `/api`. Except for `auth/register`, `auth/login`, `
 
 ## Data model
 
-SQLite tables: `users`, `bills`, `persons`, `bill_items`, `item_assignments`, `calculation_results`. Each bill belongs to a user; each item can be split `equal`, `percentage`, or `custom` among assigned persons; tax lines are always split evenly across all persons on the bill.
+SQLite tables: `users`, `bills`, `persons`, `bill_items`, `item_assignments`, `calculation_results`. Invoices are stored in the `bills` table (the API keeps the `/bills` paths). Besides its name and scan data, each invoice has `vendor_name`, `invoice_number`, `invoice_date`, `due_date` (YYYY-MM-DD), `currency` (ISO 4217), `category`, `notes`, `extracted_total` (the total printed on the invoice), `payment_status` (`unpaid`/`paid`) and `paid_at`. These columns are added automatically to existing databases on startup.
+
+For bill splitting, each item can be split `equal`, `percentage`, or `custom` among assigned persons; tax lines are always split evenly across all persons on the bill.
+
+## Tests
+
+```bash
+cd backend
+python -m unittest discover -s tests -t .
+```
+
+The tests run against a temporary database and do not touch `data/fairshare.db`.
 
 ## Security notes
 

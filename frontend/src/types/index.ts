@@ -1,6 +1,8 @@
 export type BillStatus = 'draft' | 'ocr_pending' | 'ocr_done' | 'assigned' | 'calculated'
 export type SplitType = 'equal' | 'percentage' | 'custom'
+export type PaymentStatus = 'unpaid' | 'paid'
 
+/** An invoice. Stored in the `bills` table, so the API and store keep the "bill" name. */
 export interface Bill {
   id: number
   name: string
@@ -10,8 +12,30 @@ export interface Bill {
   status: BillStatus
   created_at: string
   updated_at: string
+  vendor_name: string | null
+  invoice_number: string | null
+  invoice_date: string | null   // YYYY-MM-DD
+  due_date: string | null       // YYYY-MM-DD
+  currency: string | null       // ISO 4217
+  category: string | null
+  notes: string | null
+  extracted_total: number | null
+  payment_status: PaymentStatus
+  paid_at: string | null        // YYYY-MM-DD
   items?: BillItem[]
 }
+
+/** A row from GET /bills, which adds totals computed from the line items. */
+export interface BillSummary extends Bill {
+  total: number
+  tax_total: number
+  item_count: number
+}
+
+export type InvoiceFields = Partial<Pick<Bill,
+  'name' | 'vendor_name' | 'invoice_number' | 'invoice_date' | 'due_date' |
+  'currency' | 'category' | 'notes' | 'payment_status' | 'paid_at'
+>>
 
 export interface BillItem {
   id: number
@@ -66,6 +90,7 @@ export interface OcrUploadResponse {
   bill_id: number
   business_name: string | null
   items: BillItem[]
+  bill: Bill
   raw_ocr: string
   processing_time_ms?: number
 }

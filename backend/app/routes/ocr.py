@@ -12,6 +12,7 @@ from app.services.llm_service import (
     normalize_zero_unit_items, fix_unit_price_consistency,
     reattach_dropped_continuations, LLMTimeoutError, LLMParseError,
 )
+from app.services.invoice_service import merge_page_metadata
 from app.middleware.auth import require_auth
 
 ocr_bp = Blueprint("ocr", __name__)
@@ -121,6 +122,7 @@ def upload_receipt():
     # LLM parse each page separately (combined context degrades quality)
     all_items: list[dict] = []
     all_tax: list[dict] = []
+    raw_pages: list[dict] = []
     business_name: str | None = None
 
     for i, page_ocr in enumerate(raw_parts):
@@ -131,6 +133,7 @@ def upload_receipt():
             for it in _raw.get("items", []):
                 print(f"  item  {it.get('name')!r:40s}  qty={it.get('quantity')}  unit={it.get('unit_price')}  total={it.get('total_price')}", flush=True)
 
+            raw_pages.append(_raw)
             if not business_name:
                 business_name = _raw.get("business_name")
 
@@ -202,23 +205,36 @@ def upload_receipt():
                 dupe_ids
             )
 
+        # Invoice header fields only fill blanks, so a later scan never overwrites
+        # values the user has already entered or corrected.
+        meta = merge_page_metadata(raw_pages)
         db.execute(
             """UPDATE bills SET
                raw_ocr = ?, llm_output = ?,
                name = CASE WHEN name = 'Unnamed Bill' AND ? IS NOT NULL THEN ? ELSE name END,
+               vendor_name     = COALESCE(vendor_name, ?),
+               invoice_number  = COALESCE(invoice_number, ?),
+               invoice_date    = COALESCE(invoice_date, ?),
+               due_date        = COALESCE(due_date, ?),
+               currency        = COALESCE(currency, ?),
+               extracted_total = COALESCE(extracted_total, ?),
                status = 'ocr_done', updated_at = datetime('now')
                WHERE id = ?""",
-            (raw_ocr, json_mod.dumps(parsed), business_name, business_name, bill_id)
+            (raw_ocr, json_mod.dumps(parsed), business_name, business_name,
+             meta["vendor_name"], meta["invoice_number"], meta["invoice_date"],
+             meta["due_date"], meta["currency"], meta["extracted_total"], bill_id)
         )
 
         items = db.execute(
             "SELECT * FROM bill_items WHERE bill_id = ? ORDER BY sort_order", (bill_id,)
         ).fetchall()
+        bill = db.execute("SELECT * FROM bills WHERE id = ?", (bill_id,)).fetchone()
 
     return jsonify({
         "bill_id": bill_id,
         "business_name": business_name,
         "items": [dict(i) for i in items],
+        "bill": dict(bill),
         "raw_ocr": raw_ocr,
         "processing_time_ms": processing_ms,
     }), 200

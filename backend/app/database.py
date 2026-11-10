@@ -70,10 +70,29 @@ CREATE TABLE IF NOT EXISTS calculation_results (
 """
 
 
+# Invoice fields added to the bills table. Applied by _migrate so existing
+# databases pick them up as well as fresh ones.
+INVOICE_COLUMNS = {
+    "vendor_name":     "TEXT",
+    "invoice_number":  "TEXT",
+    "invoice_date":    "TEXT",   # YYYY-MM-DD
+    "due_date":        "TEXT",   # YYYY-MM-DD
+    "currency":        "TEXT",   # ISO 4217 code, e.g. INR, USD
+    "category":        "TEXT",
+    "notes":           "TEXT",
+    "extracted_total": "REAL",   # grand total printed on the invoice, as read by the LLM
+    "payment_status":  "TEXT NOT NULL DEFAULT 'unpaid'",
+    "paid_at":         "TEXT",   # YYYY-MM-DD
+}
+
+
 def _migrate(conn):
     cols = {row[1] for row in conn.execute("PRAGMA table_info(bills)").fetchall()}
     if "user_id" not in cols:
         conn.execute("ALTER TABLE bills ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+    for name, ddl in INVOICE_COLUMNS.items():
+        if name not in cols:
+            conn.execute(f"ALTER TABLE bills ADD COLUMN {name} {ddl}")
 
 
 def _seed(conn):

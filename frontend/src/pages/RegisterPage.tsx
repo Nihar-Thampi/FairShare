@@ -43,7 +43,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Create your account" subtitle="Start splitting bills with your friends">
+    <AuthLayout title="Create your account" subtitle="Start managing your invoices">
       <form onSubmit={handleSubmit}>
         <Stack gap="sm">
           <TextInput

@@ -9,7 +9,7 @@ interface Props extends Omit<BadgeProps, 'color' | 'children'> {
 export default function PaymentBadge({ bill, ...props }: Props) {
   const state = paymentState(bill)
   return (
-    <Badge variant="light" color={PAYMENT_STATE_COLORS[state]} {...props}>
+    <Badge variant="outline" className="fs-stamp" color={PAYMENT_STATE_COLORS[state]} {...props}>
       {PAYMENT_STATE_LABELS[state]}
     </Badge>
   )

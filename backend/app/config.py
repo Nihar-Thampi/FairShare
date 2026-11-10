@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+# .env wins over the shell, except in Docker (DOTENV_OVERRIDE=0), where the compose file's
+# settings for the container must win over a .env written for running natively.
+load_dotenv(override=os.environ.get("DOTENV_OVERRIDE", "1") != "0")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

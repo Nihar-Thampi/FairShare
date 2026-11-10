@@ -1,0 +1,43 @@
+# FairShare, built and served the same way on Windows and macOS.
+#   Start:            docker compose up -d --build        then open http://localhost:8083
+#   After an update:  docker compose up -d --build        (rebuilds only what changed)
+#   Logs:             docker compose logs -f backend
+#   Stop:             docker compose down
+# Live reload while editing: docker-compose.dev.yml (see the top of that file).
+# Dependencies live in the images; nothing installed here is synced by OneDrive.
+
+name: fairshare
+
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DOTENV_OVERRIDE: "0"
+    volumes:
+      # The database and uploaded invoices stay in the project folder, synced by OneDrive.
+      - ./backend/data:/app/data
+      - ./backend/uploads:/app/uploads
+      # EasyOCR downloads its models on first use; keep them between restarts.
+      - easyocr-models:/root/.EasyOCR
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FAIRSHARE_PORT:-8083}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  easyocr-models:

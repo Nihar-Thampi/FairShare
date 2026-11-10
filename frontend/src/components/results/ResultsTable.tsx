@@ -2,6 +2,8 @@ import { Stack, Text, SimpleGrid, Alert, Loader, Center, Button, Group, Paper, T
 import { IconAlertCircle, IconCalculator } from '@tabler/icons-react'
 import type { PersonResult } from '../../types'
 import PersonCard from './PersonCard'
+import { useBillStore } from '../../store/billStore'
+import { formatMoney } from '../../utils/invoice'
 
 interface Props {
   billId: number
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export default function ResultsTable({ results, loading, error, onCalculate }: Props) {
+  const currency = useBillStore(s => s.bill?.currency ?? null)
   if (loading) {
     return <Center py="xl"><Loader /></Center>
   }
@@ -50,10 +53,10 @@ export default function ResultsTable({ results, loading, error, onCalculate }: P
             ))}
           </SimpleGrid>
 
-          <Paper bg="teal.0" p="md" radius="md">
+          <Paper bg="ink.0" p="md" radius="md">
             <Group justify="space-between">
-              <Text size="sm" fw={500} c="teal.9">Grand total</Text>
-              <Text size="xl" fw={700} c="teal.9">${grandTotal.toFixed(2)}</Text>
+              <Text size="sm" fw={500} c="ink.9">Grand total</Text>
+              <Text size="xl" fw={600} c="ink.9" className="fs-amount">{formatMoney(grandTotal, currency)}</Text>
             </Group>
           </Paper>
         </>
