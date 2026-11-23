@@ -1,15 +1,14 @@
+import os
 import json as json_mod
 from flask import Blueprint, jsonify, request, g, send_from_directory
 from app.database import get_db
 from app.middleware.auth import require_auth
 from app.config import UPLOAD_FOLDER
 from app.services.invoice_service import validate_invoice_update, InvoiceFieldError
+from app.services.ownership import owned_bill as _owned_bill, owned_item
+from app.services.upload_service import is_valid_image, parse_image_paths
 
 bills_bp = Blueprint("bills", __name__)
-
-
-def _owned_bill(db, bill_id: int, user_id: int):
-    return db.execute("SELECT * FROM bills WHERE id = ? AND user_id = ?", (bill_id, user_id)).fetchone()
 
 
 @bills_bp.route("/bills", methods=["GET"])
@@ -103,17 +102,11 @@ def update_bill(bill_id):
 @bills_bp.route("/bills/<int:bill_id>", methods=["DELETE"])
 @require_auth
 def delete_bill(bill_id):
-    import os
     with get_db() as db:
         bill = _owned_bill(db, bill_id, g.user_id)
         if not bill:
             return jsonify({"error": "Bill not found"}), 404
-        try:
-            paths = json_mod.loads(bill["image_path"]) if bill["image_path"] else []
-            if not isinstance(paths, list):
-                paths = [paths]
-        except (TypeError, ValueError):
-            paths = []
+        paths = parse_image_paths(bill["image_path"])
 
         # Delete leaf rows first, then parent rows, so no FK constraint can block.
         db.execute(
@@ -142,12 +135,7 @@ def get_bill_image(bill_id, filename):
         bill = _owned_bill(db, bill_id, g.user_id)
         if not bill:
             return jsonify({"error": "Bill not found"}), 404
-        try:
-            paths = json_mod.loads(bill["image_path"]) if bill["image_path"] else []
-            if not isinstance(paths, list):
-                paths = [paths]
-        except (TypeError, ValueError):
-            paths = []
+        paths = parse_image_paths(bill["image_path"])
         if filename not in paths:
             return jsonify({"error": "Image not found"}), 404
     return send_from_directory(UPLOAD_FOLDER, filename)
@@ -161,20 +149,16 @@ def replace_bill_image(bill_id, filename):
         bill = _owned_bill(db, bill_id, g.user_id)
         if not bill:
             return jsonify({"error": "Bill not found"}), 404
-        try:
-            paths = json_mod.loads(bill["image_path"]) if bill["image_path"] else []
-            if not isinstance(paths, list):
-                paths = [paths]
-        except (TypeError, ValueError):
-            paths = []
+        paths = parse_image_paths(bill["image_path"])
         if filename not in paths:
             return jsonify({"error": "Image not found"}), 404
 
     file = request.files.get("file")
     if not file:
         return jsonify({"error": "No file provided"}), 422
+    if not is_valid_image(file):
+        return jsonify({"error": "File is not a valid image"}), 422
 
-    import os
     file.save(os.path.join(UPLOAD_FOLDER, filename))
     return jsonify(dict(bill))
 
@@ -186,12 +170,7 @@ def delete_bill_image(bill_id, filename):
         bill = _owned_bill(db, bill_id, g.user_id)
         if not bill:
             return jsonify({"error": "Bill not found"}), 404
-        try:
-            paths = json_mod.loads(bill["image_path"]) if bill["image_path"] else []
-            if not isinstance(paths, list):
-                paths = [paths]
-        except (TypeError, ValueError):
-            paths = []
+        paths = parse_image_paths(bill["image_path"])
         if filename not in paths:
             return jsonify({"error": "Image not found"}), 404
 
@@ -204,7 +183,6 @@ def delete_bill_image(bill_id, filename):
         bill = db.execute("SELECT * FROM bills WHERE id = ?", (bill_id,)).fetchone()
 
     # Remove file from disk (non-fatal if already gone)
-    import os
     try:
         os.remove(os.path.join(UPLOAD_FOLDER, filename))
     except OSError:
@@ -261,17 +239,11 @@ def add_item(bill_id):
 @bills_bp.route("/bills/<int:bill_id>/items", methods=["DELETE"])
 @require_auth
 def clear_items(bill_id):
-    import os
     with get_db() as db:
         bill = _owned_bill(db, bill_id, g.user_id)
         if not bill:
             return jsonify({"error": "Bill not found"}), 404
-        try:
-            paths = json_mod.loads(bill["image_path"]) if bill["image_path"] else []
-            if not isinstance(paths, list):
-                paths = [paths]
-        except (TypeError, ValueError):
-            paths = []
+        paths = parse_image_paths(bill["image_path"])
 
         db.execute(
             """DELETE FROM item_assignments WHERE item_id IN (
@@ -304,12 +276,7 @@ def clear_items(bill_id):
 @require_auth
 def update_item(item_id):
     with get_db() as db:
-        item = db.execute(
-            """SELECT bi.* FROM bill_items bi
-               JOIN bills b ON b.id = bi.bill_id
-               WHERE bi.id = ? AND b.user_id = ?""",
-            (item_id, g.user_id)
-        ).fetchone()
+        item = owned_item(db, item_id, g.user_id)
         if not item:
             return jsonify({"error": "Item not found"}), 404
 
@@ -322,20 +289,22 @@ def update_item(item_id):
                 return jsonify({"error": "name cannot be empty"}), 422
             fields.append("name = ?")
             values.append(name)
+        try:
+            qty = float(data.get("quantity", item["quantity"]))
+            price = float(data.get("unit_price", item["unit_price"]))
+        except (TypeError, ValueError):
+            return jsonify({"error": "quantity and unit_price must be numbers"}), 422
         if "quantity" in data:
             fields.append("quantity = ?")
-            values.append(float(data["quantity"]))
+            values.append(qty)
         if "unit_price" in data:
             fields.append("unit_price = ?")
-            values.append(float(data["unit_price"]))
+            values.append(price)
         if "is_tax_line" in data:
             fields.append("is_tax_line = ?")
             values.append(1 if data["is_tax_line"] else 0)
 
         if fields:
-            current = dict(item)
-            qty = float(data.get("quantity", current["quantity"]))
-            price = float(data.get("unit_price", current["unit_price"]))
             fields.append("total_price = ?")
             values.append(round(qty * price, 2))
             values.append(item_id)
@@ -349,13 +318,7 @@ def update_item(item_id):
 @require_auth
 def delete_item(item_id):
     with get_db() as db:
-        item = db.execute(
-            """SELECT bi.id FROM bill_items bi
-               JOIN bills b ON b.id = bi.bill_id
-               WHERE bi.id = ? AND b.user_id = ?""",
-            (item_id, g.user_id)
-        ).fetchone()
-        if not item:
+        if not owned_item(db, item_id, g.user_id):
             return jsonify({"error": "Item not found"}), 404
         db.execute("DELETE FROM bill_items WHERE id = ?", (item_id,))
     return "", 204

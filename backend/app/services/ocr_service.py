@@ -1,6 +1,9 @@
 import re
 import math
+import logging
 import easyocr
+
+logger = logging.getLogger(__name__)
 
 _reader: easyocr.Reader | None = None
 
@@ -129,7 +132,7 @@ def _group_into_lines(results: list) -> list[str]:
     sorted_results = sorted(results, key=_y_center)
 
     if skew != 0.0:
-        print(f"[OCR] detected skew {math.degrees(skew):.1f}° — applying correction", flush=True)
+        logger.info("Detected skew %.1f deg, applying correction", math.degrees(skew))
 
     # Use median text height to set a robust line-grouping threshold
     heights = [r[0][2][1] - r[0][0][1] for r in sorted_results]

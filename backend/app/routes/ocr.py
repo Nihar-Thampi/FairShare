@@ -1,6 +1,7 @@
 import os
 import uuid
 import time
+import logging
 import json as json_mod
 from flask import Blueprint, jsonify, request, current_app, g
 from app.database import get_db
@@ -13,14 +14,11 @@ from app.services.llm_service import (
     reattach_dropped_continuations, LLMTimeoutError, LLMParseError,
 )
 from app.services.invoice_service import merge_page_metadata
+from app.services.upload_service import allowed_extension, is_valid_image, parse_image_paths
 from app.middleware.auth import require_auth
 
+logger = logging.getLogger(__name__)
 ocr_bp = Blueprint("ocr", __name__)
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "bmp", "tiff"}
-
-
-def _allowed(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def _find_cross_scan_dupes(items: list) -> list[int]:
@@ -60,8 +58,10 @@ def upload_receipt():
         return jsonify({"error": "No file(s) provided"}), 422
 
     for f in files:
-        if not f.filename or not _allowed(f.filename):
+        if not f.filename or not allowed_extension(f.filename):
             return jsonify({"error": "Invalid file type. Allowed: jpg, jpeg, png, webp, bmp, tiff"}), 422
+        if not is_valid_image(f):
+            return jsonify({"error": f"{f.filename} is not a valid image file"}), 422
 
     bill_id = request.form.get("bill_id")
     if not bill_id:
@@ -89,14 +89,7 @@ def upload_receipt():
             saved_paths.append(image_path)
             filenames.append(filename)
 
-        existing = bill["image_path"]
-        try:
-            paths = json_mod.loads(existing) if existing else []
-            if not isinstance(paths, list):
-                paths = [paths]
-        except (TypeError, ValueError):
-            paths = [existing] if existing else []
-        paths.extend(filenames)
+        paths = parse_image_paths(bill["image_path"]) + filenames
 
         db.execute(
             "UPDATE bills SET image_path = ?, status = 'ocr_pending', updated_at = datetime('now') WHERE id = ?",
@@ -109,15 +102,15 @@ def upload_receipt():
         raw_parts: list[str] = []
         for i, img_path in enumerate(saved_paths):
             page_ocr = preprocess_and_extract(img_path)
-            print(f"[OCR page {i + 1}/{len(saved_paths)}]\n{page_ocr}\n", flush=True)
+            logger.debug("OCR page %d/%d:\n%s", i + 1, len(saved_paths), page_ocr)
             if page_ocr.strip():
                 raw_parts.append(page_ocr)
         raw_ocr = "\n\n--- PAGE BREAK ---\n\n".join(raw_parts)
-    except Exception as e:
-        print(f"[OCR ERROR] {e}", flush=True)
+    except Exception:
+        logger.exception("OCR processing failed for bill %s", bill_id)
         with get_db() as db:
             db.execute("UPDATE bills SET status = 'draft', updated_at = datetime('now') WHERE id = ?", (bill_id,))
-        return jsonify({"error": f"OCR processing failed: {str(e)}"}), 500
+        return jsonify({"error": "OCR processing failed"}), 500
 
     # LLM parse each page separately (combined context degrades quality)
     all_items: list[dict] = []
@@ -127,11 +120,11 @@ def upload_receipt():
 
     for i, page_ocr in enumerate(raw_parts):
         try:
-            print(f"[PIPELINE] Page {i + 1}/{len(raw_parts)} — {len(page_ocr)} chars", flush=True)
+            logger.info("Page %d/%d: %d chars of OCR text", i + 1, len(raw_parts), len(page_ocr))
             _raw = parse_receipt(page_ocr)
-            print(f"[PIPELINE] Page {i + 1} — {len(_raw.get('items', []))} items, {len(_raw.get('tax_lines', []))} tax", flush=True)
+            logger.info("Page %d: %d items, %d tax lines", i + 1, len(_raw.get("items", [])), len(_raw.get("tax_lines", [])))
             for it in _raw.get("items", []):
-                print(f"  item  {it.get('name')!r:40s}  qty={it.get('quantity')}  unit={it.get('unit_price')}  total={it.get('total_price')}", flush=True)
+                logger.debug("  item %r qty=%s unit=%s total=%s", it.get("name"), it.get("quantity"), it.get("unit_price"), it.get("total_price"))
 
             raw_pages.append(_raw)
             if not business_name:
@@ -152,21 +145,21 @@ def upload_receipt():
             all_tax.extend(_p.get("tax_lines", []))
 
         except LLMTimeoutError as e:
-            print(f"[LLM TIMEOUT] page {i + 1}: {e}", flush=True)
+            logger.warning("LLM timeout on page %d: %s", i + 1, e)
             with get_db() as db:
                 db.execute(
                     "UPDATE bills SET raw_ocr = ?, status = 'ocr_done', updated_at = datetime('now') WHERE id = ?",
                     (raw_ocr, bill_id)
                 )
-            return jsonify({"error": str(e), "raw_ocr": raw_ocr, "bill_id": bill_id}), 504
+            return jsonify({"error": "The language model timed out. Try again.", "raw_ocr": raw_ocr, "bill_id": bill_id}), 504
         except LLMParseError as e:
-            print(f"[LLM ERROR] page {i + 1}: {e}", flush=True)
+            logger.error("LLM error on page %d: %s", i + 1, e)
             with get_db() as db:
                 db.execute(
                     "UPDATE bills SET raw_ocr = ?, status = 'ocr_done', updated_at = datetime('now') WHERE id = ?",
                     (raw_ocr, bill_id)
                 )
-            return jsonify({"error": str(e), "raw_ocr": raw_ocr, "bill_id": bill_id}), 500
+            return jsonify({"error": "Could not parse the bill text.", "raw_ocr": raw_ocr, "bill_id": bill_id}), 500
 
     parsed = deduplicate_items({"business_name": business_name, "items": all_items, "tax_lines": all_tax})
     processing_ms = int((time.time() - t_start) * 1000)
@@ -199,7 +192,7 @@ def upload_receipt():
         ).fetchall()
         dupe_ids = _find_cross_scan_dupes([dict(r) for r in all_bill_items])
         if dupe_ids:
-            print(f"[PIPELINE] Cross-scan dedup: removing {len(dupe_ids)} duplicate(s)", flush=True)
+            logger.info("Cross-scan dedup: removing %d duplicate(s)", len(dupe_ids))
             db.execute(
                 f"DELETE FROM bill_items WHERE id IN ({','.join('?' * len(dupe_ids))})",
                 dupe_ids

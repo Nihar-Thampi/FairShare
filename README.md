@@ -116,9 +116,13 @@ cp .env.example .env
 ```ini
 DATABASE_PATH=data/fairshare.db
 UPLOAD_FOLDER=uploads
+# Local/demo mode: FLASK_DEBUG=true enables Flask debug mode and lets the app start with the
+# placeholder JWT_SECRET. Remove it (and set a real JWT_SECRET) for anything shared.
 FLASK_DEBUG=true
+# Creates the demo login admin@admin.com / admin123 on a fresh database. Local/demo only.
+SEED_DEMO_ADMIN=true
 
-# Auth — change JWT_SECRET to a long random string in production
+# Auth — outside debug mode the app refuses to start unless this is a long random string
 JWT_SECRET=CHANGE-THIS-IN-PRODUCTION
 JWT_ACCESS_EXPIRY=900
 JWT_REFRESH_EXPIRY=604800
@@ -134,7 +138,7 @@ Run the server:
 python run.py
 ```
 
-The API is served at `http://localhost:5000/api`. The SQLite database is created automatically on first run, along with a seeded default account (`admin@admin.com` / `admin123`) for local testing.
+The API is served at `http://localhost:5000/api`. The SQLite database is created automatically on first run. If `SEED_DEMO_ADMIN=true` is set, a demo account (`admin@admin.com` / `admin123`) is created on a fresh database; otherwise register a user in the app. `FLASK_DEBUG` is read by `run.py` (debug server and reloader) and also relaxes the `JWT_SECRET` check; with Docker, the same `backend/.env` applies.
 
 ### Frontend setup
 
@@ -188,5 +192,5 @@ The tests run against a temporary database and do not touch `data/fairshare.db`.
 
 - Passwords are hashed with `bcrypt`.
 - Auth uses short-lived JWT access tokens (15 min default) plus longer-lived refresh tokens (7 days default).
-- Set a strong, random `JWT_SECRET` before deploying — the default value is only safe for local development.
-- The seeded `admin@admin.com` account exists for local development convenience only; remove or change it before deploying anywhere reachable by others.
+- Set a strong, random `JWT_SECRET` before deploying. Outside `FLASK_DEBUG=true` the app refuses to start with the default value.
+- The demo `admin@admin.com` account is only created when `SEED_DEMO_ADMIN=true`; leave that unset anywhere reachable by others (an already-created demo account stays in the database until you delete it).

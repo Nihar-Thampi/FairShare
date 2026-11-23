@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, g
 from app.database import get_db
 from app.middleware.auth import require_auth
+from app.services.ownership import owned_bill, owned_person
 
 persons_bp = Blueprint("persons", __name__)
 
@@ -9,7 +10,7 @@ persons_bp = Blueprint("persons", __name__)
 @require_auth
 def list_persons(bill_id):
     with get_db() as db:
-        if not db.execute("SELECT id FROM bills WHERE id = ? AND user_id = ?", (bill_id, g.user_id)).fetchone():
+        if not owned_bill(db, bill_id, g.user_id):
             return jsonify({"error": "Bill not found"}), 404
         persons = db.execute(
             "SELECT * FROM persons WHERE bill_id = ? ORDER BY id", (bill_id,)
@@ -21,7 +22,7 @@ def list_persons(bill_id):
 @require_auth
 def add_person(bill_id):
     with get_db() as db:
-        if not db.execute("SELECT id FROM bills WHERE id = ? AND user_id = ?", (bill_id, g.user_id)).fetchone():
+        if not owned_bill(db, bill_id, g.user_id):
             return jsonify({"error": "Bill not found"}), 404
 
         data = request.get_json(silent=True) or {}
@@ -41,13 +42,7 @@ def add_person(bill_id):
 @require_auth
 def delete_person(person_id):
     with get_db() as db:
-        person = db.execute(
-            """SELECT p.id FROM persons p
-               JOIN bills b ON b.id = p.bill_id
-               WHERE p.id = ? AND b.user_id = ?""",
-            (person_id, g.user_id)
-        ).fetchone()
-        if not person:
+        if not owned_person(db, person_id, g.user_id):
             return jsonify({"error": "Person not found"}), 404
         db.execute("DELETE FROM item_assignments WHERE person_id = ?", (person_id,))
         db.execute("DELETE FROM calculation_results WHERE person_id = ?", (person_id,))

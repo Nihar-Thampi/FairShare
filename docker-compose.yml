@@ -5,6 +5,9 @@
 #   Stop:             docker compose down
 # Live reload while editing: docker-compose.dev.yml (see the top of that file).
 # Dependencies live in the images; nothing installed here is synced by OneDrive.
+# Backend settings come from backend/.env (copy backend/.env.example). The backend refuses to start
+# without a real JWT_SECRET unless FLASK_DEBUG=true; for a local demo keep the example's
+# FLASK_DEBUG=true and SEED_DEMO_ADMIN=true (login admin@admin.com / admin123).
 
 name: fairshare
 

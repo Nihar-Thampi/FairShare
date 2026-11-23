@@ -1,6 +1,7 @@
 import sqlite3
 import os
 from contextlib import contextmanager
+from app import config
 from app.config import DATABASE_PATH
 
 DDL = """
@@ -96,11 +97,12 @@ def _migrate(conn):
 
 
 def _seed(conn):
-    """Create the default admin account on a fresh database.
+    """Create the demo admin account (admin@admin.com / admin123) when SEED_DEMO_ADMIN is set.
 
-    Credentials: email=admin@admin.com  password=admin123
     Skipped silently if the account already exists.
     """
+    if not config.SEED_DEMO_ADMIN:
+        return
     if conn.execute("SELECT id FROM users WHERE email = 'admin@admin.com'").fetchone():
         return
     from app.services.auth_service import hash_password

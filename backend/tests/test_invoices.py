@@ -2,13 +2,12 @@
 
 Run from backend/:  python -m unittest discover -s tests
 """
-import os
 import sqlite3
-import tempfile
 import unittest
 from datetime import date
 
 import app.database as database
+from tests.helpers import ApiTestCase
 from app.services.invoice_service import (
     InvoiceFieldError, merge_page_metadata, validate_invoice_update,
 )
@@ -69,24 +68,7 @@ class ValidateInvoiceUpdateTest(unittest.TestCase):
                 validate_invoice_update(body)
 
 
-class BillsApiTest(unittest.TestCase):
-    def setUp(self):
-        # Point the app at a throwaway database. config.py loads .env with
-        # override=True, so the module global is patched rather than the env var.
-        fd, self.db_path = tempfile.mkstemp(suffix=".db")
-        os.close(fd)
-        self._real_db_path = database.DATABASE_PATH
-        database.DATABASE_PATH = self.db_path
-
-        from app import create_app
-        self.client = create_app().test_client()
-        res = self.client.post("/api/auth/login", json={"email": "admin@admin.com", "password": "admin123"})
-        self.headers = {"Authorization": f"Bearer {res.get_json()['access_token']}"}
-
-    def tearDown(self):
-        database.DATABASE_PATH = self._real_db_path
-        os.remove(self.db_path)
-
+class BillsApiTest(ApiTestCase):
     def _create_bill_with_items(self):
         bill = self.client.post("/api/bills", json={"name": "Office supplies"}, headers=self.headers).get_json()
         for item in ({"name": "Paper", "quantity": 2, "unit_price": 150},

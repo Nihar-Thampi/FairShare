@@ -1,8 +1,10 @@
 import os
+import logging
 import jwt
-import traceback
 from flask import Flask, jsonify, request, g
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
+from app import config
 from app.config import UPLOAD_FOLDER, MAX_CONTENT_LENGTH
 from app.database import init_db
 
@@ -19,6 +21,8 @@ _PUBLIC_ENDPOINTS = frozenset({
 
 
 def create_app():
+    config.check_secrets()
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     app = Flask(__name__)
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
     app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
@@ -77,7 +81,9 @@ def create_app():
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(e):
-        app.logger.error("Unhandled exception:\n%s", traceback.format_exc())
-        return jsonify({"error": "Internal server error", "detail": str(e)}), 500
+        if isinstance(e, HTTPException):
+            return jsonify({"error": e.description}), e.code
+        app.logger.exception("Unhandled exception")
+        return jsonify({"error": "Internal server error"}), 500
 
     return app

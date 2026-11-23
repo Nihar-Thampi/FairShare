@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, g
 from app.database import get_db
 from app.services.split_service import calculate_bill, SplitValidationError
 from app.middleware.auth import require_auth
+from app.services.ownership import owned_bill
 
 calculate_bp = Blueprint("calculate", __name__)
 
@@ -11,7 +12,7 @@ calculate_bp = Blueprint("calculate", __name__)
 @require_auth
 def run_calculate(bill_id):
     with get_db() as db:
-        if not db.execute("SELECT id FROM bills WHERE id = ? AND user_id = ?", (bill_id, g.user_id)).fetchone():
+        if not owned_bill(db, bill_id, g.user_id):
             return jsonify({"error": "Bill not found"}), 404
 
     try:
@@ -26,7 +27,7 @@ def run_calculate(bill_id):
 @require_auth
 def get_results(bill_id):
     with get_db() as db:
-        if not db.execute("SELECT id FROM bills WHERE id = ? AND user_id = ?", (bill_id, g.user_id)).fetchone():
+        if not owned_bill(db, bill_id, g.user_id):
             return jsonify({"error": "Bill not found"}), 404
 
         rows = db.execute(

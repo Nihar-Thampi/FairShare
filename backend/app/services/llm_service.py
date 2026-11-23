@@ -1,7 +1,10 @@
 import re
 import json
-from openai import OpenAI
+import logging
+from openai import OpenAI, APITimeoutError
 from app.config import OPENAI_API_KEY, OPENAI_MODEL
+
+logger = logging.getLogger(__name__)
 
 
 class LLMTimeoutError(Exception):
@@ -136,7 +139,7 @@ def parse_receipt(raw_ocr: str) -> dict:
     if parsed is not None:
         return parsed
 
-    print(f"[LLM] First parse failed ({len(result)} chars), retrying with fix prompt...", flush=True)
+    logger.warning("First LLM parse failed (%d chars), retrying with fix prompt", len(result))
     fix_msg = f"The following text is supposed to be JSON but is malformed. Fix it and return ONLY valid JSON:\n\n{result}"
     result = _call_openai("You are a JSON repair assistant. Return only valid JSON.", fix_msg)
     parsed = _extract_json(result)
@@ -160,9 +163,10 @@ def _call_openai(system_prompt: str, user_prompt: str) -> str:
             response_format={"type": "json_object"},
         )
         return response.choices[0].message.content or ""
+    except APITimeoutError as e:
+        raise LLMTimeoutError(f"OpenAI API timed out: {e}") from e
     except Exception as e:
-        msg = str(e)
-        raise LLMTimeoutError(f"OpenAI API error: {msg}")
+        raise LLMParseError(f"OpenAI API error: {e}") from e
 
 
 def _extract_json(text: str) -> dict | None:
@@ -381,7 +385,7 @@ def filter_optional_and_headers(parsed: dict) -> dict:
     ]
     removed = before - len(parsed["items"])
     if removed:
-        print(f"[filter_optional_and_headers] removed {removed} item(s)", flush=True)
+        logger.info("filter_optional_and_headers removed %d item(s)", removed)
     return parsed
 
 
@@ -454,7 +458,7 @@ def filter_total_lines(parsed: dict) -> dict:
     filtered = [item for item in items if not _is_total_row(item)]
     removed = len(items) - len(filtered)
     if removed:
-        print(f"[filter_total_lines] removed {removed} item(s) matching subtotal/grand-total", flush=True)
+        logger.info("filter_total_lines removed %d item(s) matching subtotal/grand-total", removed)
     parsed["items"] = filtered
     return parsed
 

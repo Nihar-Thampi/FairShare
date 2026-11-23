@@ -2,6 +2,9 @@
 #   Start:  docker compose -f docker-compose.dev.yml up --build     then open http://localhost:5183
 #   Stop:   docker compose -f docker-compose.dev.yml down
 # The source is mounted from this folder; node_modules and Python packages stay in Docker.
+# Backend settings come from backend/.env (copy backend/.env.example). The backend refuses to start
+# without a real JWT_SECRET unless FLASK_DEBUG=true; for a local demo keep the example's
+# FLASK_DEBUG=true and SEED_DEMO_ADMIN=true (login admin@admin.com / admin123).
 
 name: fairshare
 
