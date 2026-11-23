@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Modal, Stack, TextInput, Group, Button } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { updateBill } from '../../api/bills'
@@ -14,9 +14,12 @@ export default function RenameBillModal({ bill, onClose, onRenamed }: Props) {
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
+  // Reset the field whenever a different bill is opened (set during render, not in an effect)
+  const [prevBill, setPrevBill] = useState(bill)
+  if (prevBill !== bill) {
+    setPrevBill(bill)
     if (bill) setName(bill.name)
-  }, [bill])
+  }
 
   const trimmed = name.trim()
   const unchanged = !!bill && trimmed === bill.name

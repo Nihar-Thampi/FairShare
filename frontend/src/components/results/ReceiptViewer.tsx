@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ActionIcon, Group, Loader, Modal, Text, Tooltip, UnstyledButton } from '@mantine/core'
 import { IconPencil, IconX } from '@tabler/icons-react'
 import type { Bill } from '../../types'
@@ -13,41 +13,47 @@ interface Props {
 }
 
 export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDeleted, onEdit }: Props) {
-  const [entries, setEntries]   = useState<{ filename: string; url: string }[]>([])
-  const [loading, setLoading]   = useState(false)
+  const [loadedEntries, setLoadedEntries] = useState<{ filename: string; url: string }[]>([])
+  const [loadedKey, setLoadedKey] = useState<string | null>(null)
   const [enlarged, setEnlarged] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const revokeRef = useRef<string[]>([])
 
-  useEffect(() => {
-    let filenames: string[]
+  const filenames = useMemo<string[]>(() => {
     try {
       const parsed = JSON.parse(imagePath ?? 'null')
-      filenames = Array.isArray(parsed) ? parsed : parsed ? [parsed] : []
+      return Array.isArray(parsed) ? parsed : parsed ? [parsed] : []
     } catch {
-      filenames = imagePath ? [imagePath] : []
+      return imagePath ? [imagePath] : []
     }
+  }, [imagePath])
+  const fetchKey = `${billId}|${imagePath}|${refreshKey}`
+  const entries = filenames.length ? loadedEntries : []
+  const loading = filenames.length > 0 && loadedKey !== fetchKey
 
-    if (filenames.length === 0) {
-      setEntries([])
-      return
-    }
-
-    setLoading(true)
+  useEffect(() => {
+    if (filenames.length === 0) return
+    let cancelled = false
     Promise.all(
       filenames.map(async f => ({ filename: f, url: await getBillImageBlobUrl(billId, f) }))
     )
       .then(next => {
+        if (cancelled) { next.forEach(e => URL.revokeObjectURL(e.url)); return }
         revokeRef.current.forEach(u => URL.revokeObjectURL(u))
         revokeRef.current = next.map(e => e.url)
-        setEntries(next)
+        setLoadedEntries(next)
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
+      .finally(() => { if (!cancelled) setLoadedKey(fetchKey) })
 
-    return () => { revokeRef.current.forEach(u => URL.revokeObjectURL(u)) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [billId, imagePath, refreshKey])
+    return () => { cancelled = true }
+  }, [billId, filenames, fetchKey])
+
+  // Revoke object URLs when the viewer unmounts
+  useEffect(() => {
+    const urls = revokeRef
+    return () => { urls.current.forEach(u => URL.revokeObjectURL(u)) }
+  }, [])
 
   const handleDelete = async (filename: string) => {
     setDeleting(filename)
@@ -55,7 +61,7 @@ export default function ReceiptViewer({ billId, imagePath, refreshKey, onImageDe
       const updatedBill = await deleteBillImage(billId, filename)
       const removed = entries.find(e => e.filename === filename)
       if (removed) URL.revokeObjectURL(removed.url)
-      setEntries(prev => prev.filter(e => e.filename !== filename))
+      setLoadedEntries(prev => prev.filter(e => e.filename !== filename))
       if (enlarged === entries.find(e => e.filename === filename)?.url) setEnlarged(null)
       onImageDeleted?.(updatedBill)
     } catch {

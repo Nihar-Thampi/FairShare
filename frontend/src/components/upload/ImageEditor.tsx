@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Modal, Group, Button, Stack, Text, Loader, Center, ActionIcon, Tooltip,
   Divider,
@@ -21,27 +21,28 @@ const LABELS = ['Top-left', 'Top-right', 'Bottom-right', 'Bottom-left']
 
 export default function ImageEditor({ file, pageLabel, onConfirm, onCancel }: Props) {
   const [imgEl, setImgEl]             = useState<HTMLImageElement | null>(null)
-  const [displaySize, setDisplaySize] = useState<{ w: number; h: number } | null>(null)
   const [handles, setHandles]         = useState<Pt[]>([])
   const [dragging, setDragging]       = useState<number | null>(null)
   const [processing, setProcessing]   = useState(false)
   const [enhance, setEnhance]         = useState<EnhanceSettings>(DEFAULT_ENHANCE)
   // Enhancement is computed automatically once the image loads — no user controls
 
-  const [previewUrl, setPreviewUrl] = useState('')
+  // The original file's preview URL, plus the URL of the latest rotation (null until rotated)
+  const originalUrl = useMemo(() => URL.createObjectURL(file), [file])
+  const [rotatedUrl, setRotatedUrl] = useState<string | null>(null)
+  const previewUrl = rotatedUrl ?? originalUrl
   const allUrls = useRef<string[]>([])
 
   // Callback ref: fires when Modal portal mounts the container div
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
-  // Init preview URL; revoke all on unmount
+  // Revoke the original preview URL when it is replaced or on unmount
+  useEffect(() => () => URL.revokeObjectURL(originalUrl), [originalUrl])
+  // Revoke every rotated preview URL on unmount
   useEffect(() => {
-    const url = URL.createObjectURL(file)
-    allUrls.current = [url]
-    setPreviewUrl(url)
-    return () => { allUrls.current.forEach(u => URL.revokeObjectURL(u)) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const urls = allUrls
+    return () => { urls.current.forEach(u => URL.revokeObjectURL(u)) }
   }, [])
 
   // Load <img> whenever previewUrl changes (also after rotate), then auto-compute enhancement
@@ -55,23 +56,28 @@ export default function ImageEditor({ file, pageLabel, onConfirm, onCancel }: Pr
     img.src = previewUrl
   }, [previewUrl])
 
-  // Compute display dimensions once BOTH image and container are available.
-  // containerEl is state (not a ref) so this re-fires when the portal mounts.
-  useEffect(() => {
-    if (!imgEl || !containerEl) return
+  // Display dimensions, derived once BOTH image and container are available.
+  // containerEl is state (not a ref) so this recomputes when the portal mounts.
+  const displaySize = useMemo(() => {
+    if (!imgEl || !containerEl) return null
     const maxW = containerEl.clientWidth || 600
     const maxH = 460
     const scale = Math.min(maxW / imgEl.naturalWidth, maxH / imgEl.naturalHeight, 1)
-    const w = Math.round(imgEl.naturalWidth * scale)
-    const h = Math.round(imgEl.naturalHeight * scale)
-    setDisplaySize({ w, h })
+    return { w: Math.round(imgEl.naturalWidth * scale), h: Math.round(imgEl.naturalHeight * scale) }
+  }, [imgEl, containerEl])
+
+  // Reset the crop handles to the corners whenever the display size changes (set during render)
+  const [handlesFor, setHandlesFor] = useState(displaySize)
+  if (displaySize && handlesFor !== displaySize) {
+    const { w, h } = displaySize
+    setHandlesFor(displaySize)
     setHandles([
       [HANDLE_R, HANDLE_R],
       [w - HANDLE_R, HANDLE_R],
       [w - HANDLE_R, h - HANDLE_R],
       [HANDLE_R, h - HANDLE_R],
     ])
-  }, [imgEl, containerEl])
+  }
 
   // ── Drag helpers ─────────────────────────────────────────────────────────────
 
@@ -135,7 +141,7 @@ export default function ImageEditor({ file, pageLabel, onConfirm, onCancel }: Pr
       const blob = await rotateImage(imgEl, deg)
       const newUrl = URL.createObjectURL(blob)
       allUrls.current = [...allUrls.current, newUrl]
-      setPreviewUrl(newUrl)
+      setRotatedUrl(newUrl)
     } finally {
       setProcessing(false)
     }

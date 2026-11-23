@@ -78,6 +78,8 @@ export default function InvoicePage() {
     }).finally(() => setPageLoading(false))
 
     return () => controller.abort()
+  // Load once per bill id: the store/hook functions are recreated every render, so listing them would refetch in a loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [billId])
 
   const handleOcrComplete = useCallback((newItems: BillItem[], updated: Bill) => {

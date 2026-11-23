@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Table, Checkbox, Badge, Group, Text, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import type { BillItem, Person, Assignment, SplitType } from '../../types'
@@ -31,10 +31,13 @@ export default function ItemAssignmentRow({ item, persons, assignments, onSaved 
   )
   const [splits, setSplits] = useState<PersonSplit[]>(buildSplits(assignments))
 
-  useEffect(() => {
+  // Re-sync local state when the parent passes new assignments (set during render, not in an effect)
+  const [prevAssignments, setPrevAssignments] = useState(assignments)
+  if (prevAssignments !== assignments) {
+    setPrevAssignments(assignments)
     setCheckedIds(assignments.map(a => a.person_id))
     setSplits(buildSplits(assignments))
-  }, [assignments])
+  }
 
   const handleCheck = async (personId: number, checked: boolean) => {
     const newIds = checked

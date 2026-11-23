@@ -25,7 +25,9 @@ function setStoredAccessToken(token: string) {
     const parsed = JSON.parse(raw)
     parsed.state.accessToken = token
     localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed))
-  } catch {}
+  } catch {
+    // storage unavailable or malformed: keep the in-memory token only
+  }
 }
 
 // Attach Bearer token to every request
